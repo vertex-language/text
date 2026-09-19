@@ -52,6 +52,11 @@ func isVoidElement(_ tag: string) -> bool {
 }
 
 func isRawTextElement(_ tag: string) -> bool {
-    let lower = toLower(tag)
-    return lower == "script" || lower == "style"
+    return tag == "script" || tag == "style" || tag == "textarea" || tag == "title"
+}
+
+// The raw text elements whose text still has character references:
+// RCDATA, in the standard's term.
+func isEscapableRawText(_ tag: string) -> bool {
+    return tag == "textarea" || tag == "title"
 }

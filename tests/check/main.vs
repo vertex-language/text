@@ -21,6 +21,44 @@ func same(_ got: string, _ want: string, _ what: string) {
 
 // MARK: - HTML Tests
 
+func testTreeBuilding() {
+    print("Testing text/html tree building...")
+    let doc = html.Parse("<title>T</title><p>one<p>two<ul><li>a<li>b</ul><input disabled><textarea>x<b>y</textarea>")
+    let htmls = doc.ElementsByTagName("html")
+    let heads = doc.ElementsByTagName("head")
+    let bodies = doc.ElementsByTagName("body")
+    check(htmls.count == 1 && heads.count == 1 && bodies.count == 1, "html, head and body are made where the source has none")
+    same(doc.Title, "T", "the title ends up in the head")
+    if heads.count == 1 {
+        check(heads[0].Children.count == 1 && heads[0].Children[0].TagName == "title", "the head holds the title and nothing else")
+    }
+    let ps = doc.ElementsByTagName("p")
+    check(ps.count == 2, "a <p> is closed by the next <p> (\(ps.count) paragraphs)")
+    if ps.count == 2 {
+        same(ps[0].InnerText(), "one", "first paragraph's text")
+        same(ps[1].InnerText(), "two", "second paragraph's text")
+        check(ps[1].Parent != nil && ps[1].Parent?.TagName == "body", "the second paragraph is the body's, not the first's")
+    }
+    let lis = doc.ElementsByTagName("li")
+    check(lis.count == 2 && lis[1].Parent?.TagName == "ul", "an <li> is closed by the next <li>")
+    if let input = doc.ElementsByTagName("input").first {
+        check(input.HasAttribute("disabled") && input.GetAttribute("disabled") == "", "a boolean attribute's value is the empty string")
+    }
+    if let area = doc.ElementsByTagName("textarea").first {
+        same(area.InnerText(), "x<b>y", "a textarea's text is not markup")
+        check(doc.ElementsByTagName("b").isEmpty, "no <b> was made inside the textarea")
+    }
+    let attrs = html.Parse("<div CLASS='x' Data-ID=7></div>")
+    if let div = attrs.ElementsByTagName("div").first {
+        check(div.GetAttribute("class") == "x" && div.Attributes[0].Name == "class", "attribute names are lowercased")
+        check(div.GetAttribute("data-id") == "7", "unquoted attribute values")
+    }
+    let table = html.Parse("<table><tr><td>a<td>b<tr><td>c</table>")
+    check(table.ElementsByTagName("tr").count == 2 && table.ElementsByTagName("td").count == 3, "cells and rows close each other")
+    let full = html.Parse("<!DOCTYPE html><html><head><meta charset=utf-8></head><body><p>x</p></body></html>")
+    check(full.ElementsByTagName("head").count == 1 && full.ElementsByTagName("body").count == 1, "a complete document is left as it is")
+}
+
 func testHTML() {
     print("Testing text/html...")
 
@@ -341,6 +379,7 @@ func testSelector() {
 
 func main() -> int32 {
     print("Running vertex-language/text check suite...\n")
+    testTreeBuilding()
     testHTML()
     print("")
     testCSS()

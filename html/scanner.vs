@@ -136,7 +136,7 @@ public class Scanner {
                 pos += 1
                 continue
             }
-            let attrName = stringFromBytes(src, from: attrStart, to: pos)
+            let attrName = toLower(stringFromBytes(src, from: attrStart, to: pos))
             var attrVal = ""
 
             skipSpace()
@@ -168,8 +168,9 @@ public class Scanner {
                     attrVal = Unescape(stringFromBytes(src, from: valStart, to: pos))
                 }
             } else {
-                // Boolean attribute (e.g. `required`, `checked`)
-                attrVal = attrName
+                // A boolean attribute (`required`, `checked`) has the
+                // empty string as its value, as the DOM gives it.
+                attrVal = ""
             }
             attrs.append(Attribute(attrName, attrVal))
         }

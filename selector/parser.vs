@@ -31,19 +31,52 @@ public struct AttrSelector: Equatable {
     }
 }
 
+/// A pseudo-class with whatever it was given: `:hover`, `:nth-child(2n+1)`
+/// (A and B), `:not(a, .b)` (the selectors inside).
+public struct Pseudo {
+    public var Name: string
+    public var Argument: string
+    public var A: int
+    public var B: int
+    public var Inner: [ComplexSelector]
+
+    public init(name: string, argument: string = "") {
+        self.Name = name
+        self.Argument = argument
+        self.A = 0
+        self.B = 0
+        self.Inner = []
+    }
+}
+
 public struct SelectorPart {
     public var Tag: string?
     public var Id: string?
     public var Classes: [string]
     public var Attributes: [AttrSelector]
-    public var PseudoClasses: [string]
+    public var Pseudos: [Pseudo]
+    /// `::before`, `::after` and the like; a selector with one names
+    /// something no element is, so it matches no element.
+    public var PseudoElement: string?
 
     public init() {
         self.Tag = nil
         self.Id = nil
         self.Classes = []
         self.Attributes = []
-        self.PseudoClasses = []
+        self.Pseudos = []
+        self.PseudoElement = nil
+    }
+
+    /// The names of the pseudo-classes, for code that wants only those.
+    public var PseudoClasses: [string] {
+        var out: [string] = []
+        var i = 0
+        while i < Pseudos.count {
+            out.append(Pseudos[i].Name)
+            i += 1
+        }
+        return out
     }
 }
 
@@ -74,7 +107,31 @@ public struct ComplexSelector {
         while i < Compounds.count {
             let p = Compounds[i].Part
             if p.Id != nil { ids += 1 }
-            classes += p.Classes.count + p.Attributes.count + p.PseudoClasses.count
+            classes += p.Classes.count + p.Attributes.count
+            var k = 0
+            while k < p.Pseudos.count {
+                let ps = p.Pseudos[k]
+                // :not(), :is() and :has() count as their most specific
+                // argument; :where() counts nothing.
+                if ps.Name == "not" || ps.Name == "is" || ps.Name == "has" {
+                    var best = (0, 0, 0)
+                    var m = 0
+                    while m < ps.Inner.count {
+                        let sp = ps.Inner[m].Specificity()
+                        if sp.0 > best.0 || (sp.0 == best.0 && (sp.1 > best.1 || (sp.1 == best.1 && sp.2 > best.2))) {
+                            best = sp
+                        }
+                        m += 1
+                    }
+                    ids += best.0
+                    classes += best.1
+                    tags += best.2
+                } else if ps.Name != "where" {
+                    classes += 1
+                }
+                k += 1
+            }
+            if p.PseudoElement != nil { tags += 1 }
             if let t = p.Tag {
                 if t != "*" { tags += 1 }
             }
@@ -159,9 +216,40 @@ func parseComplexSelector(_ selStr: string) -> ComplexSelector? {
                 readAny = true
             } else if b == 58 { // ':' Pseudo
                 pos += 1
+                var isElement = false
+                if pos < len && bytes[pos] == 58 {
+                    pos += 1
+                    isElement = true
+                }
                 let start = pos
                 while pos < len && isIdent(bytes[pos]) { pos += 1 }
-                part.PseudoClasses.append(strFrom(bytes, start, pos))
+                let name = toLower(strFrom(bytes, start, pos))
+                var argument = ""
+                if pos < len && bytes[pos] == 40 { // '('
+                    pos += 1
+                    let argStart = pos
+                    var depth = 1
+                    while pos < len && depth > 0 {
+                        if bytes[pos] == 40 { depth += 1 }
+                        if bytes[pos] == 41 { depth -= 1 }
+                        if depth > 0 { pos += 1 }
+                    }
+                    argument = trim(strFrom(bytes, argStart, pos))
+                    if pos < len { pos += 1 }
+                }
+                if isElement || name == "before" || name == "after" || name == "first-line" || name == "first-letter" {
+                    part.PseudoElement = name
+                } else {
+                    var pseudo = Pseudo(name: name, argument: argument)
+                    if name == "nth-child" || name == "nth-last-child" || name == "nth-of-type" || name == "nth-last-of-type" {
+                        let ab = parseNth(argument)
+                        pseudo.A = ab.a
+                        pseudo.B = ab.b
+                    } else if name == "not" || name == "is" || name == "where" || name == "has" {
+                        pseudo.Inner = ParseSelectors(argument)
+                    }
+                    part.Pseudos.append(pseudo)
+                }
                 readAny = true
             } else if b == 91 { // '[' Attribute
                 pos += 1
@@ -171,7 +259,7 @@ func parseComplexSelector(_ selStr: string) -> ComplexSelector? {
             } else if isIdent(b) || b == 42 { // Tag name or '*'
                 let start = pos
                 while pos < len && (isIdent(bytes[pos]) || bytes[pos] == 42) { pos += 1 }
-                part.Tag = strFrom(bytes, start, pos)
+                part.Tag = toLower(strFrom(bytes, start, pos))
                 readAny = true
             } else {
                 pos += 1
@@ -286,16 +374,21 @@ func splitByComma(_ s: string) -> [string] {
     var current: [uint8] = []
     var inQuotes = false
     var quoteChar: uint8 = 0
+    var depth = 0
 
     for b in s.utf8 {
         if (b == 34 || b == 39) && (!inQuotes || b == quoteChar) {
             inQuotes = !inQuotes
             quoteChar = inQuotes ? b : 0
             current.append(b)
-        } else if b == 44 && !inQuotes { // ','
+        } else if b == 44 && !inQuotes && depth == 0 { // ','
             out.append(strFrom(current, 0, current.count))
             current = []
         } else {
+            if !inQuotes {
+                if b == 40 || b == 91 { depth += 1 }
+                if (b == 41 || b == 93) && depth > 0 { depth -= 1 }
+            }
             current.append(b)
         }
     }
@@ -303,4 +396,54 @@ func splitByComma(_ s: string) -> [string] {
         out.append(strFrom(current, 0, current.count))
     }
     return out
+}
+
+/// The A and B of An+B: `2n+1`, `odd`, `even`, `3`, `-n+2`, `n`.
+func parseNth(_ text: string) -> (a: int, b: int) {
+    let lower = toLower(trim(text))
+    if lower == "odd" { return (a: 2, b: 1) }
+    if lower == "even" { return (a: 2, b: 0) }
+    let bytes = bytesFrom(lower)
+    var i = 0
+    var a = 0
+    var b = 0
+    var hasN = false
+    // The A part: a signed number, or a bare sign, before an n.
+    var sign = 1
+    var digits = 0
+    var value = 0
+    var sawDigit = false
+    while i < bytes.count && isSpace(bytes[i]) { i += 1 }
+    if i < bytes.count && (bytes[i] == 43 || bytes[i] == 45) {
+        if bytes[i] == 45 { sign = -1 }
+        i += 1
+    }
+    while i < bytes.count && bytes[i] >= 48 && bytes[i] <= 57 {
+        value = value * 10 + int(bytes[i] - 48)
+        i += 1
+        digits += 1
+        sawDigit = true
+    }
+    if i < bytes.count && bytes[i] == 110 { // 'n'
+        hasN = true
+        i += 1
+        a = sawDigit ? sign * value : sign
+    } else {
+        return (a: 0, b: sign * value)
+    }
+    // The B part.
+    while i < bytes.count && isSpace(bytes[i]) { i += 1 }
+    if i < bytes.count && (bytes[i] == 43 || bytes[i] == 45) {
+        let bsign = bytes[i] == 45 ? -1 : 1
+        i += 1
+        while i < bytes.count && isSpace(bytes[i]) { i += 1 }
+        var bv = 0
+        while i < bytes.count && bytes[i] >= 48 && bytes[i] <= 57 {
+            bv = bv * 10 + int(bytes[i] - 48)
+            i += 1
+        }
+        b = bsign * bv
+    }
+    _ = hasN
+    return (a: a, b: b)
 }

@@ -377,6 +377,55 @@ func testSelector() {
 
 // MARK: - Main Runner
 
+func testPseudoClasses() {
+    print("Testing text/css/selector pseudo-classes...")
+    let doc = html.Parse("<ul><li id=a class=x>1<li id=b>2<li id=c class=x>3<li id=d>4<li id=e>5</ul><p id=empty></p><input id=in disabled><a id=link href=/>l</a><a id=anchor>n</a>")
+    func ids(_ sel: string) -> string {
+        let nodes = selector.QuerySelectorAll(sel, in: doc.Root)
+        var out = ""
+        var i = 0
+        while i < nodes.count {
+            out += nodes[i].IdAttr() ?? "?"
+            i += 1
+        }
+        return out
+    }
+    same(ids("li:first-child"), "a", ":first-child")
+    same(ids("li:last-child"), "e", ":last-child")
+    same(ids("li:nth-child(2)"), "b", ":nth-child(2)")
+    same(ids("li:nth-child(odd)"), "ace", ":nth-child(odd)")
+    same(ids("li:nth-child(even)"), "bd", ":nth-child(even)")
+    same(ids("li:nth-child(2n+1)"), "ace", ":nth-child(2n+1)")
+    same(ids("li:nth-child(-n+2)"), "ab", ":nth-child(-n+2)")
+    same(ids("li:nth-child(n+4)"), "de", ":nth-child(n+4)")
+    same(ids("li:nth-last-child(1)"), "e", ":nth-last-child(1)")
+    same(ids("li:not(.x)"), "bde", ":not(.x)")
+    same(ids("li:not(.x, #b)"), "de", ":not() with a list")
+    same(ids("li:is(#a, #e)"), "ae", ":is()")
+    same(ids("ul:has(> li.x)"), "?", ":has() with a child combinator is not matched yet")
+    same(ids("p:empty"), "empty", ":empty")
+    same(ids("input:disabled"), "in", ":disabled")
+    same(ids("a:link"), "link", ":link wants an href")
+    same(ids("li::before"), "", "a pseudo-element matches no element")
+    same(ids("LI.x"), "ac", "tag names are matched case-insensitively")
+
+    let ctx = selector.MatchContext()
+    let sels = selector.ParseSelectors("li:hover")
+    let b = doc.ElementById("b")!
+    let ul = doc.ElementsByTagName("ul")[0]
+    check(!selector.MatchComplexIn(sels[0], b, ctx), "nothing is hovered by default")
+    ctx.Hovered = b
+    check(selector.MatchComplexIn(sels[0], b, ctx), ":hover matches the hovered element")
+    let ulSel = selector.ParseSelectors("ul:hover")[0]
+    check(selector.MatchComplexIn(ulSel, ul, ctx), ":hover matches an ancestor of the hovered element")
+    let focusSel = selector.ParseSelectors("li:focus")[0]
+    check(!selector.MatchComplexIn(focusSel, b, ctx), ":focus is not :hover")
+    ctx.Focused = b
+    check(selector.MatchComplexIn(focusSel, b, ctx), ":focus matches the focused element")
+    let spec = selector.ParseSelectors("li.x:not(#a):hover")[0].Specificity()
+    check(spec.0 == 1 && spec.1 == 2 && spec.2 == 1, "specificity counts :not()'s argument (got \(spec.0),\(spec.1),\(spec.2))")
+}
+
 func main() -> int32 {
     print("Running vertex-language/text check suite...\n")
     testTreeBuilding()
@@ -385,6 +434,7 @@ func main() -> int32 {
     testCSS()
     print("")
     testSelector()
+    testPseudoClasses()
     print("")
 
     if failures == 0 {

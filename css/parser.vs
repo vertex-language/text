@@ -24,19 +24,12 @@ public class Parser {
                 let name = current.Value
                 advance()
                 // Collect params until '{' or ';'
-                var params = ""
+                var paramTokens: [Token] = []
                 while current.Kind != TokenKind.openBrace && current.Kind != TokenKind.semicolon && current.Kind != TokenKind.eof {
-                    let curVal = current.Value
-                    if !params.isEmpty {
-                        let lastB = bytesFromString(params).last ?? 0
-                        let firstB = bytesFromString(curVal).first ?? 0
-                        if lastB != 40 && firstB != 41 && firstB != 58 {
-                            params += " "
-                        }
-                    }
-                    params += curVal
+                    paramTokens.append(current)
                     advance()
                 }
+                let params = Serialize(paramTokens)
                 if current.Kind == TokenKind.openBrace {
                     advance() // skip '{'
                     var innerRules: [Rule] = []
@@ -66,32 +59,28 @@ public class Parser {
     /// Parses a single CSS rule (selectors + declaration block).
     func parseRule() -> Rule? {
         var selectors: [string] = []
-        var currentSel = ""
 
-        // Collect selectors until '{'
+        // Collect selectors until '{'. Parens nest: a `:not(a, b)` keeps
+        // its comma.
+        var tokens: [Token] = []
+        var depth = 0
         while current.Kind != TokenKind.openBrace && current.Kind != TokenKind.eof {
-            if current.Kind == TokenKind.comma {
-                let s = trimString(currentSel)
+            if current.Kind == TokenKind.comma && depth == 0 {
+                let s = trimString(Serialize(tokens))
                 if !s.isEmpty {
                     selectors.append(s)
                 }
-                currentSel = ""
+                tokens = []
                 advance()
                 continue
             }
-            if !currentSel.isEmpty {
-                // If previous char wasn't a delimiter like '.', '#', '>', add space
-                let lastB = bytesFromString(currentSel).last ?? 0
-                let curB = bytesFromString(current.Value).first ?? 0
-                if curB != 46 && curB != 35 && curB != 58 && curB != 62 && lastB != 46 && lastB != 35 && lastB != 58 && lastB != 62 {
-                    currentSel += " "
-                }
-            }
-            currentSel += current.Value
+            if current.Kind == TokenKind.function || current.Kind == TokenKind.openParen { depth += 1 }
+            if current.Kind == TokenKind.closeParen && depth > 0 { depth -= 1 }
+            tokens.append(current)
             advance()
         }
 
-        let lastSel = trimString(currentSel)
+        let lastSel = trimString(Serialize(tokens))
         if !lastSel.isEmpty {
             selectors.append(lastSel)
         }
@@ -118,10 +107,14 @@ public class Parser {
                 if current.Kind == TokenKind.colon {
                     advance() // skip ':'
 
-                    var val = ""
+                    var tokens: [Token] = []
                     var important = false
+                    var depth = 0
 
-                    while current.Kind != TokenKind.semicolon && current.Kind != TokenKind.closeBrace && current.Kind != TokenKind.eof {
+                    while current.Kind != TokenKind.eof {
+                        if depth == 0 && (current.Kind == TokenKind.semicolon || current.Kind == TokenKind.closeBrace) {
+                            break
+                        }
                         if current.Kind == TokenKind.delim && current.Value == "!" {
                             advance()
                             if current.Kind == TokenKind.ident && toLower(current.Value) == "important" {
@@ -130,14 +123,16 @@ public class Parser {
                                 continue
                             }
                         }
-                        if !val.isEmpty {
-                            val += " "
-                        }
-                        val += current.Value
+                        if current.Kind == TokenKind.function || current.Kind == TokenKind.openParen { depth += 1 }
+                        if current.Kind == TokenKind.closeParen && depth > 0 { depth -= 1 }
+                        tokens.append(current)
                         advance()
                     }
+                    if !tokens.isEmpty {
+                        tokens[0].SpaceBefore = false
+                    }
 
-                    decls.append(Declaration(property: prop, value: trimString(val), important: important))
+                    decls.append(Declaration(property: prop, value: Serialize(tokens), important: important, tokens: tokens))
 
                     if current.Kind == TokenKind.semicolon {
                         advance()

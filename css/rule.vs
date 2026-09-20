@@ -24,16 +24,19 @@ public struct Rule {
     }
 }
 
-/// An at-rule, such as `@media (min-width: 600px) { ... }`.
+/// An at-rule, such as `@media (min-width: 600px) { ... }`, which holds
+/// rules, or `@font-face { ... }`, which holds declarations.
 public struct AtRule {
     public var Name: string
     public var Params: string
     public var Rules: [Rule]
+    public var Declarations: [Declaration]
 
-    public init(name: string, params: string, rules: [Rule]) {
+    public init(name: string, params: string, rules: [Rule], declarations: [Declaration] = []) {
         self.Name = toLower(name)
         self.Params = params
         self.Rules = rules
+        self.Declarations = declarations
     }
 }
 

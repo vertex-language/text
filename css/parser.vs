@@ -32,6 +32,13 @@ public class Parser {
                 let params = Serialize(paramTokens)
                 if current.Kind == TokenKind.openBrace {
                     advance() // skip '{'
+                    let lowerName = toLower(name)
+                    if lowerName == "font-face" || lowerName == "page" || lowerName == "counter-style" || lowerName == "font-feature-values" || lowerName == "property" {
+                        // A block of declarations, not of rules.
+                        let decls = parseDeclarationBlock()
+                        atRules.append(AtRule(name: name, params: trimString(params), rules: [], declarations: decls))
+                        continue
+                    }
                     var innerRules: [Rule] = []
                     while current.Kind != TokenKind.closeBrace && current.Kind != TokenKind.eof {
                         if let rule = parseRule() {

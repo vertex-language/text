@@ -11,6 +11,9 @@ public final class MatchContext {
     public var Hovered: html.Node?
     public var Focused: html.Node?
     public var Active: html.Node?
+    /// Whether a link has been visited, asked with its element: the
+    /// host knows its history. Nothing is visited without it.
+    public var Visited: ((html.Node) -> bool)?
     // Each element's 1-based place among its parent's element children,
     // and each parent's count of them, filled in a parent at a time: the
     // nth-child family asks for every element on a page.
@@ -21,6 +24,7 @@ public final class MatchContext {
         Hovered = nil
         Focused = nil
         Active = nil
+        Visited = nil
     }
 
     /// An empty context: nothing hovered, focused or active.
@@ -193,6 +197,8 @@ func matchPseudo(_ p: Pseudo, _ node: html.Node, _ ctx: MatchContext) -> bool {
     case "link", "any-link":
         return (node.TagName == "a" || node.TagName == "area") && node.HasAttribute("href")
     case "visited":
+        guard (node.TagName == "a" || node.TagName == "area") && node.HasAttribute("href") else { return false }
+        if let v = ctx.Visited { return v(node) }
         return false
     case "checked":
         if node.TagName == "option" { return node.HasAttribute("selected") }

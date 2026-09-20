@@ -72,12 +72,17 @@ public func MatchPart(_ part: SelectorPart, _ node: html.Node) -> bool {
 }
 
 public func MatchPartIn(_ part: SelectorPart, _ node: html.Node, _ ctx: MatchContext) -> bool {
+    return matchPart(part, node, ctx, pseudoElement: nil)
+}
+
+func matchPart(_ part: SelectorPart, _ node: html.Node, _ ctx: MatchContext, pseudoElement: string?) -> bool {
     if node.Kind != html.NodeKind.element {
         return false
     }
 
-    // A pseudo-element is not an element.
-    if part.PseudoElement != nil {
+    // A pseudo-element is not an element, unless that is what is asked
+    // about: `p::before` matches p's ::before.
+    if part.PseudoElement != pseudoElement {
         return false
     }
 
@@ -300,6 +305,13 @@ public func MatchComplex(_ complex: ComplexSelector, _ node: html.Node) -> bool 
 /// Matches a complex selector against an element, with the page's state
 /// for the dynamic pseudo-classes.
 public func MatchComplexIn(_ complex: ComplexSelector, _ node: html.Node, _ ctx: MatchContext) -> bool {
+    return MatchComplexIn(complex, node, ctx, pseudoElement: nil)
+}
+
+/// Matches a selector that ends in a pseudo-element -- `a::before` --
+/// against an element's pseudo-element of that name; with nil, a
+/// selector ending in a pseudo-element matches nothing.
+public func MatchComplexIn(_ complex: ComplexSelector, _ node: html.Node, _ ctx: MatchContext, pseudoElement: string?) -> bool {
     if node.Kind != html.NodeKind.element {
         return false
     }
@@ -309,7 +321,7 @@ public func MatchComplexIn(_ complex: ComplexSelector, _ node: html.Node, _ ctx:
 
     let lastIdx = compounds.count - 1
     // The target element must match the rightmost compound selector
-    if !MatchPartIn(compounds[lastIdx].Part, node, ctx) {
+    if !matchPart(compounds[lastIdx].Part, node, ctx, pseudoElement: pseudoElement) {
         return false
     }
 

@@ -11,6 +11,11 @@ public final class MatchContext {
     public var Hovered: html.Node?
     public var Focused: html.Node?
     public var Active: html.Node?
+    // Each element's 1-based place among its parent's element children,
+    // and each parent's count of them, filled in a parent at a time: the
+    // nth-child family asks for every element on a page.
+    var indexOf: [int64: int] = [:]
+    var countOf: [int64: int] = [:]
 
     public init() {
         Hovered = nil
@@ -20,6 +25,27 @@ public final class MatchContext {
 
     /// An empty context: nothing hovered, focused or active.
     public static let none = MatchContext()
+
+    /// Forgets what was learned about the tree's shape: call after
+    /// elements are added or removed.
+    public func Reset() {
+        indexOf = [:]
+        countOf = [:]
+    }
+
+    func siblingIndex(_ node: html.Node) -> (index: int, count: int) {
+        guard let p = node.Parent else { return (index: 1, count: 1) }
+        if let i = indexOf[node.Id], let n = countOf[p.Id] {
+            return (index: i, count: n)
+        }
+        var n = 0
+        for c in p.Children where c.Kind == html.NodeKind.element {
+            n += 1
+            indexOf[c.Id] = n
+        }
+        countOf[p.Id] = n
+        return (index: indexOf[node.Id] ?? 1, count: n)
+    }
 
     func isHovered(_ node: html.Node) -> bool {
         var cur = Hovered
@@ -112,10 +138,6 @@ public func MatchPartIn(_ part: SelectorPart, _ node: html.Node, _ ctx: MatchCon
 
 func matchPseudo(_ p: Pseudo, _ node: html.Node, _ ctx: MatchContext) -> bool {
     switch p.Name {
-    case "first-child":
-        return node.PreviousElementSibling() == nil
-    case "last-child":
-        return node.NextElementSibling() == nil
     case "only-child":
         return node.PreviousElementSibling() == nil && node.NextElementSibling() == nil
     case "first-of-type":
@@ -125,9 +147,15 @@ func matchPseudo(_ p: Pseudo, _ node: html.Node, _ ctx: MatchContext) -> bool {
     case "only-of-type":
         return previousOfType(node) == nil && nextOfType(node) == nil
     case "nth-child":
-        return nthMatches(p.A, p.B, indexAmongSiblings(node, ofType: false, fromEnd: false))
+        return nthMatches(p.A, p.B, ctx.siblingIndex(node).index)
     case "nth-last-child":
-        return nthMatches(p.A, p.B, indexAmongSiblings(node, ofType: false, fromEnd: true))
+        let s = ctx.siblingIndex(node)
+        return nthMatches(p.A, p.B, s.count - s.index + 1)
+    case "first-child":
+        return ctx.siblingIndex(node).index == 1
+    case "last-child":
+        let s = ctx.siblingIndex(node)
+        return s.index == s.count
     case "nth-of-type":
         return nthMatches(p.A, p.B, indexAmongSiblings(node, ofType: true, fromEnd: false))
     case "nth-last-of-type":
@@ -341,14 +369,17 @@ public func MatchComplexIn(_ complex: ComplexSelector, _ node: html.Node, _ ctx:
 
 // String helpers for attribute matching
 func toLower(_ s: string) -> string {
-    var b: [uint8] = []
-    for byte in s.utf8 {
-        if byte >= 65 && byte <= 90 {
-            b.append(byte + 32)
-        } else {
-            b.append(byte)
+    var b = [uint8](s.utf8)
+    var i = 0
+    var changed = false
+    while i < b.count {
+        if b[i] >= 65 && b[i] <= 90 {
+            b[i] = b[i] + 32
+            changed = true
         }
+        i += 1
     }
+    if !changed { return s }
     return strFrom(b, 0, b.count)
 }
 

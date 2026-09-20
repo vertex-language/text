@@ -1,36 +1,36 @@
 package css
 
-func bytesFromString(_ text: string) -> [uint8] {
-    var out: [uint8] = []
-    for b in text.utf8 {
-        out.append(b)
-    }
-    return out
-}
+@_silgen_name("vertex_string_from_utf8")
+func stringFromUtf8(_ ptr: UnsafeRawPointer, _ count: int64) -> string
 
 func stringFromBytes(_ bytes: [uint8], from start: int, to end: int) -> string {
     if start >= end { return "" }
-    var chars: [CChar] = []
-    var i = start
-    while i < end {
-        chars.append(CChar(truncatingIfNeeded: bytes[i]))
-        i += 1
+    return bytes.withUnsafeBytes { bp in
+        stringFromUtf8(bp.baseAddress! + start, int64(end - start))
     }
-    chars.append(0)
-    return string(cString: chars)
+}
+
+func bytesFromString(_ text: string) -> [uint8] {
+    return [uint8](text.utf8)
 }
 
 func toLower(_ s: string) -> string {
-    var b: [uint8] = []
-    for byte in s.utf8 {
-        if byte >= 65 && byte <= 90 { // 'A'...'Z'
-            b.append(byte + 32)
-        } else {
-            b.append(byte)
+    var b = [uint8](s.utf8)
+    var i = 0
+    var changed = false
+    while i < b.count {
+        if b[i] >= 65 && b[i] <= 90 {
+            b[i] = b[i] + 32
+            changed = true
         }
+        i += 1
     }
+    if !changed { return s }
     return stringFromBytes(b, from: 0, to: b.count)
 }
+
+
+
 
 func isWhitespace(_ b: uint8) -> bool {
     return b == 32 || b == 9 || b == 10 || b == 13 || b == 12

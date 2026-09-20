@@ -334,21 +334,17 @@ func parseAttrSelector(_ bytes: [uint8], _ pos: inout int) -> AttrSelector {
 }
 
 func bytesFrom(_ s: string) -> [uint8] {
-    var out: [uint8] = []
-    for b in s.utf8 { out.append(b) }
-    return out
+    return [uint8](s.utf8)
 }
+
+@_silgen_name("vertex_string_from_utf8")
+func stringFromUtf8(_ ptr: UnsafeRawPointer, _ count: int64) -> string
 
 func strFrom(_ bytes: [uint8], _ start: int, _ end: int) -> string {
     if start >= end { return "" }
-    var chars: [CChar] = []
-    var i = start
-    while i < end {
-        chars.append(CChar(truncatingIfNeeded: bytes[i]))
-        i += 1
+    return bytes.withUnsafeBytes { bp in
+        stringFromUtf8(bp.baseAddress! + start, int64(end - start))
     }
-    chars.append(0)
-    return string(cString: chars)
 }
 
 func isSpace(_ b: uint8) -> bool {

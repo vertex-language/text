@@ -38,12 +38,13 @@ public class Node {
 
     // MARK: - Attributes & Classes
 
-    /// Looks up an attribute value by name (case-insensitive).
+    /// Looks up an attribute value by name. Names are lowercase as the
+    /// parser stores them, and a name asked for in any case is found.
     public func GetAttribute(_ name: string) -> string? {
         let lower = toLower(name)
         var i = 0
         while i < Attributes.count {
-            if toLower(Attributes[i].Name) == lower {
+            if Attributes[i].Name == lower {
                 return Attributes[i].Value
             }
             i += 1
@@ -56,13 +57,26 @@ public class Node {
         let lower = toLower(name)
         var i = 0
         while i < Attributes.count {
-            if toLower(Attributes[i].Name) == lower {
+            if Attributes[i].Name == lower {
                 Attributes[i].Value = value
                 return
             }
             i += 1
         }
-        Attributes.append(Attribute(name, value))
+        Attributes.append(Attribute(lower, value))
+    }
+
+    /// Removes an attribute, if it has it.
+    public func RemoveAttribute(_ name: string) {
+        let lower = toLower(name)
+        var i = 0
+        while i < Attributes.count {
+            if Attributes[i].Name == lower {
+                Attributes.remove(at: i)
+                return
+            }
+            i += 1
+        }
     }
 
     /// Whether the element has the specified attribute.
@@ -100,13 +114,26 @@ public class Node {
 
     /// Returns true if this element contains the specified class.
     public func HasClass(_ className: string) -> bool {
-        let classes = Classes()
+        guard let classAttr = GetAttribute("class") else { return false }
+        if classAttr == className { return true }
+        // A word of the attribute, without making the words.
+        let b = [uint8](classAttr.utf8)
+        let want = [uint8](className.utf8)
+        if want.isEmpty { return false }
         var i = 0
-        while i < classes.count {
-            if classes[i] == className {
-                return true
+        while i < b.count {
+            while i < b.count && isWhitespace(b[i]) { i += 1 }
+            let start = i
+            while i < b.count && !isWhitespace(b[i]) { i += 1 }
+            if i - start == want.count {
+                var k = 0
+                var same = true
+                while k < want.count {
+                    if b[start + k] != want[k] { same = false; break }
+                    k += 1
+                }
+                if same { return true }
             }
-            i += 1
         }
         return false
     }

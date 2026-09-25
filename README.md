@@ -1,10 +1,9 @@
 # text
 
-[![package: stdlib](https://img.shields.io/badge/package-stdlib-f4f4f5?style=flat-square&labelColor=e4e4e7&color=18181b)](https://github.com/vertex-language)
-[![text: html | css | selector | tokenizer](https://img.shields.io/badge/text-html%20%7C%20css%20%7C%20selector%20%7C%20tokenizer-f4f4f5?style=flat-square&labelColor=e4e4e7&color=18181b)](https://github.com/vertex-language/text)
-[![runtime: pure-vertex](https://img.shields.io/badge/runtime-pure--vertex-f4f4f5?style=flat-square&labelColor=e4e4e7&color=18181b)](https://github.com/vertex-language)
+[![package: vs-package](https://img.shields.io/badge/package-vs--package-f4f4f5?style=flat-square&labelColor=e4e4e7&color=18181b)](https://github.com/vertex-language)
+[![parsers: html | css | selector | tokenizer](https://img.shields.io/badge/parsers-html%20%7C%20css%20%7C%20selector%20%7C%20tokenizer-f4f4f5?style=flat-square&labelColor=e4e4e7&color=18181b)](https://github.com/vertex-language/text)
 
-Standard text format parsers for the Vertex programming language: 100% pure Vertex parsers and tree models for HTML and CSS, and the tokenizers that turn text into a model's token ids.
+Text format parsers and representations: HTML and CSS tree models, CSS selectors, and tokenizers for language models.
 
 ---
 
@@ -18,6 +17,12 @@ Standard text format parsers for the Vertex programming language: 100% pure Vert
 ---
 
 ## Quick Start
+
+Run any entry point with:
+
+```bash
+vsc run main.vs
+```
 
 ### Parsing and Querying HTML
 

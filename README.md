@@ -1,10 +1,10 @@
 # text
 
 [![package: stdlib](https://img.shields.io/badge/package-stdlib-f4f4f5?style=flat-square&labelColor=e4e4e7&color=18181b)](https://github.com/vertex-language)
-[![text: html | css | selector](https://img.shields.io/badge/text-html%20%7C%20css%20%7C%20selector-f4f4f5?style=flat-square&labelColor=e4e4e7&color=18181b)](https://github.com/vertex-language/text)
+[![text: html | css | selector | tokenizer](https://img.shields.io/badge/text-html%20%7C%20css%20%7C%20selector%20%7C%20tokenizer-f4f4f5?style=flat-square&labelColor=e4e4e7&color=18181b)](https://github.com/vertex-language/text)
 [![runtime: pure-vertex](https://img.shields.io/badge/runtime-pure--vertex-f4f4f5?style=flat-square&labelColor=e4e4e7&color=18181b)](https://github.com/vertex-language)
 
-Standard text format parsers for the Vertex programming language, providing 100% pure Vertex parsers and tree models for HTML and CSS.
+Standard text format parsers for the Vertex programming language: 100% pure Vertex parsers and tree models for HTML and CSS, and the tokenizers that turn text into a model's token ids.
 
 ---
 
@@ -13,6 +13,7 @@ Standard text format parsers for the Vertex programming language, providing 100%
 - **`text/html`**: HTML tokenizer, DOM tree (`Document`, `Node`), entity escaping/unescaping, and serializer.
 - **`text/css`**: CSS tokenizer, declaration blocks, at-rules (`@media`), and stylesheet parser.
 - **`text/css/selector`**: CSS selectors parser and matcher with complex combinators (`>`, space, `+`, `~`), attribute operators, pseudo-classes, and specificity calculation.
+- **`text/tokenizer`**: Text to a model's token ids and back, driven by the model's vocabulary data. `SentencePiece` works as llama.cpp's `llm_tokenizer_spm` does: score-ordered merges of adjacent pieces, `▁` for spaces, a dummy prefix, and `<0xXX>` byte fallback. `Encode`, `Decode` (with llama.cpp's leading-space rule) and `Piece` (a token's bytes, for streaming). A `Vocabulary` holds tokens, scores and kinds, the special ids, and whether BOS, EOS and the space prefix are added. It is built from a GGUF file's `tokenizer.ggml.*` keys (`model/llama.Vocabulary`).
 
 ---
 
@@ -99,7 +100,10 @@ Execute the comprehensive test suite directly with `vsc`:
 
 ```bash
 vsc run check
+vsc run test-tokenizer
 ```
+
+`test-tokenizer` runs llama.cpp's own tokenizer test for Llama 2's SentencePiece vocabulary: `tests/tokenizer/testdata`, `ggml-vocab-llama-spm.gguf` with its 46 inputs and expected ids, from llama.cpp (MIT). It also checks encoding with `<s>` and decoding both ways against what libllama makes of the same inputs (`golden/`, from `oracle/tokenize_dump.cpp`). All 46 inputs match in all three.
 
 ---
 

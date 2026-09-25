@@ -1,4 +1,4 @@
-// The 'text' package: HTML and CSS format parsers and tools for Vertex.
+// The 'text' package: HTML and CSS format parsers, tokenizers, and tools for Vertex.
 import PackageDescription
 
 let package = Package(
@@ -10,7 +10,9 @@ let package = Package(
         .library(name: "text/html", targets: ["html"]),
         .library(name: "text/css", targets: ["css"]),
         .library(name: "text/css/selector", targets: ["selector"]),
+        .library(name: "text/tokenizer", targets: ["tokenizer"]),
         .executable(name: "check", targets: ["check"]),
+        .executable(name: "test-tokenizer", targets: ["test_tokenizer"]),
     ],
     targets: [
         .target(
@@ -25,6 +27,17 @@ let package = Package(
             name: "selector",
             dependencies: ["html", "css"],
             path: "selector"
+        ),
+        // Text to a model's token ids and back, driven by the vocabulary.
+        .target(
+            name: "tokenizer",
+            path: "tokenizer"
+        ),
+        .executableTarget(
+            name: "test_tokenizer",
+            dependencies: ["tokenizer"],
+            path: "tests/tokenizer",
+            exclude: ["testdata", "golden", "oracle"]
         ),
         .executableTarget(
             name: "check",

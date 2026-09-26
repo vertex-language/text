@@ -108,7 +108,7 @@ vsc run check
 vsc run test-tokenizer
 ```
 
-`test-tokenizer` runs llama.cpp's own tokenizer test for Llama 2's SentencePiece vocabulary: `tests/tokenizer/testdata`, `ggml-vocab-llama-spm.gguf` with its 46 inputs and expected ids, from llama.cpp (MIT). It also checks encoding with `<s>` and decoding both ways against what libllama makes of the same inputs (`golden/`, from `oracle/tokenize_dump.cpp`). All 46 inputs match in all three.
+`test-tokenizer` runs llama.cpp's own tokenizer test for Llama 2's SentencePiece vocabulary: `cmd/test-tokenizer/testdata`, `ggml-vocab-llama-spm.gguf` with its 46 inputs and expected ids, from llama.cpp (MIT). It also checks encoding with `<s>` and decoding both ways against what libllama makes of the same inputs (`golden/`, from `oracle/tokenize_dump.cpp`). All 46 inputs match in all three.
 
 ---
 

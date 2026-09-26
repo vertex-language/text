@@ -44,7 +44,7 @@ func ids(_ line: Substring) -> [int] {
     return line.split(separator: " ").compactMap { int(String($0)) }
 }
 
-let dir = "tests/tokenizer/"
+let dir = "cmd/test-tokenizer/"
 let name = "ggml-vocab-llama-spm.gguf"
 let sp = tokenizer.SentencePiece(vocabulary(try gguf.Open(fs.Path(dir + "testdata/" + name))))
 check(sp.Count == 32000 && sp.Token("<s>") == 1 && sp.Token("<0x0A>") == 13, "the vocabulary: 32000 tokens, <s> and a byte token found")

@@ -1,107 +1,25 @@
 # text
 
 [![package: vs-package](https://img.shields.io/badge/package-vs--package-f4f4f5?style=flat-square&labelColor=e4e4e7&color=18181b)](https://github.com/vertex-language)
-[![parsers: html | css | selector | tokenizer](https://img.shields.io/badge/parsers-html%20%7C%20css%20%7C%20selector%20%7C%20tokenizer-f4f4f5?style=flat-square&labelColor=e4e4e7&color=18181b)](https://github.com/vertex-language/text)
+[![text: font | tokenizer](https://img.shields.io/badge/text-font%20%7C%20tokenizer-f4f4f5?style=flat-square&labelColor=e4e4e7&color=18181b)](https://github.com/vertex-language/text)
 
-Text format parsers and representations: HTML and CSS tree models, CSS selectors, and tokenizers for language models.
+Text, as algorithms rather than formats: fonts and shaping, and tokenizers for language models. HTML and CSS are the `web` repository's.
 
 ---
 
 ## Packages
 
-- **`text/html`**: HTML tokenizer, DOM tree (`Document`, `Node`), entity escaping/unescaping, and serializer.
-- **`text/css`**: CSS tokenizer, declaration blocks, at-rules (`@media`), and stylesheet parser.
-- **`text/css/selector`**: CSS selectors parser and matcher with complex combinators (`>`, space, `+`, `~`), attribute operators, pseudo-classes, and specificity calculation.
+- **`text/font`**: Faces by family, size, weight and slant; text shaped into glyphs with a per-word cache; glyph masks at any scale, drawn onto an `image/draw` canvas. The OS shapes and rasterizes: CoreText on macOS (`font.cpp`, module `text.font`, and `font_darwin.mm`).
 - **`text/tokenizer`**: Text to a model's token ids and back, driven by the model's vocabulary data. `SentencePiece` works as llama.cpp's `llm_tokenizer_spm` does: score-ordered merges of adjacent pieces, `▁` for spaces, a dummy prefix, and `<0xXX>` byte fallback. `Encode`, `Decode` (with llama.cpp's leading-space rule) and `Piece` (a token's bytes, for streaming). A `Vocabulary` holds tokens, scores and kinds, the special ids, and whether BOS, EOS and the space prefix are added. It is built from a GGUF file's `tokenizer.ggml.*` keys (`model/llama.Vocabulary`).
 
 ---
 
 ## Quick Start
 
-Run test suites and tools in `cmd/` directly with `vsc run`:
-
 ```bash
-# Run HTML and CSS checks
-vsc run check
-
-# Run tokenizer tests
+vsc run check-font
 vsc run test-tokenizer
 vsc run test-bpe
-```
-
-### Parsing and Querying HTML
-
-```swift
-package main
-
-import (
-    "text/css/selector"
-    "text/html"
-)
-
-func main() -> int32 {
-    let source = """
-    <div id="app" class="container">
-      <h1>Hello Vertex</h1>
-      <ul class="items">
-        <li class="item active"><a href="https://vertex.dev">Home</a></li>
-        <li class="item"><a href="/docs">Docs</a></li>
-      </ul>
-    </div>
-    """
-
-    let doc = html.Parse(source)
-
-    // DOM lookups
-    if let app = doc.ElementById("app") {
-        print("Found container with tag: \(app.TagName), classes: \(app.Classes())")
-    }
-
-    // CSS Selector queries
-    let activeLinks = selector.QuerySelectorAll("ul.items > li.active a", in: doc.Root)
-    for link in activeLinks {
-        print("Active link: \(link.GetAttribute("href") ?? "") - \(link.InnerText())")
-    }
-
-    // Render back to string
-    print(html.Render(doc.Root))
-    return 0
-}
-```
-
-### Parsing CSS
-
-```swift
-package main
-
-import "text/css"
-
-func main() -> int32 {
-    let style = """
-    body {
-        margin: 0;
-        color: #24292f;
-        font-family: system-ui, sans-serif;
-    }
-    .btn.primary {
-        background-color: #0969da !important;
-        padding: 8px 16px;
-    }
-    """
-
-    let sheet = css.Parse(style)
-    for rule in sheet.Rules {
-        print("Rule selectors: \(rule.Selectors)")
-        if let bg = rule.GetDeclaration("background-color") {
-            print("  background-color: \(bg.Value) (important: \(bg.Important))")
-        }
-    }
-
-    // Parse inline style
-    let inline = css.ParseDeclarations("color: red; font-size: 14px;")
-    print("Parsed \(inline.count) inline declarations")
-    return 0
-}
 ```
 
 ---
@@ -111,7 +29,7 @@ func main() -> int32 {
 Execute the comprehensive test suite directly with `vsc`:
 
 ```bash
-vsc run check
+vsc run check-font
 vsc run test-tokenizer
 ```
 

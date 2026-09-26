@@ -35,6 +35,9 @@ public struct Vocabulary {
     /// AddSpacePrefix is SentencePiece's dummy prefix: a space before the
     /// text, so a first word is spelled as every other word is.
     public var AddSpacePrefix: bool
+    /// Merges are BPE's merge rules, "left right", in rank order; empty for
+    /// SentencePiece.
+    public var Merges: [string] = []
 
     public init(tokens: [string], scores: [float32], kinds: [Kind], bos: int? = nil, eos: int? = nil,
                 unknown: int? = nil, addBos: bool = true, addEos: bool = false, addSpacePrefix: bool = true) {

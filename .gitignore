@@ -2,3 +2,6 @@
 
 # Build output
 .build/
+
+# Hugging Face tokenizers fetched for tests (see tests/bpe).
+tests/tokenizer/testdata/hf/

@@ -5,9 +5,11 @@
 // libllama does (golden/, from oracle/tokenize_dump.cpp).
 package main
 
-import "fs"
-import "model/gguf"
-import "text/tokenizer"
+import (
+    "fs"
+    "model/gguf"
+    "text/tokenizer"
+)
 
 var failures = 0
 
@@ -89,4 +91,52 @@ check(special == inputs.count, "Encode with <s>: \(special) of \(inputs.count) a
 check(decoded == inputs.count, "Decode, keeping and removing specials: \(decoded) of \(inputs.count) as libllama")
 check(sp.Decode(sp.Encode("héllo wörld 👋\n"), removeSpecial: true) == " héllo wörld 👋\n", "an emoji through byte tokens and back")
 check(sp.Encode("") == [1] && sp.Encode("", addSpecial: false) == [], "empty text: only <s>, or nothing")
+// Through Tokenizer, as a model holds it.
+let t = tokenizer.Tokenizer(.sentencePiece(sp))
+check(t.Encode("Hello") == sp.Encode("Hello") && t.Decode(sp.Encode("Hello"), removeSpecial: true) == " Hello" && t.Count == sp.Count,
+      "SentencePiece as a Tokenizer")
+
+// A SentencePiece ModelProto built by hand: three pieces, a trainer spec
+// with its ids, a normalizer spec without the dummy prefix, and a field
+// this reader does not know, skipped.
+func varint(_ v: uint64) -> [uint8] {
+    var out: [uint8] = []
+    var x = v
+    while x >= 0x80 {
+        out.append(uint8(truncatingIfNeeded: x) | 0x80)
+        x >>= 7
+    }
+    out.append(uint8(x))
+    return out
+}
+func field(_ n: int, _ bytes: [uint8]) -> [uint8] {
+    return varint(uint64(n << 3 | 2)) + varint(uint64(bytes.count)) + bytes
+}
+func number(_ n: int, _ v: uint64) -> [uint8] {
+    return varint(uint64(n << 3)) + varint(v)
+}
+func piece(_ text: string, _ score: float32, _ kind: int) -> [uint8] {
+    let bits = score.bitPattern
+    let f: [uint8] = [0x15] // field 2, fixed32
+    return field(1, [uint8](text.utf8)) + f + [uint8(truncatingIfNeeded: bits), uint8(truncatingIfNeeded: bits >> 8),
+                                               uint8(truncatingIfNeeded: bits >> 16), uint8(truncatingIfNeeded: bits >> 24)] + number(3, uint64(kind))
+}
+let proto = field(1, piece("<unk>", 0, 2)) + field(1, piece("<s>", 0, 3)) + field(1, piece("▁hi", -1.5, 1))
+    + field(2, number(40, 0) + number(41, 1) + number(42, uint64(bitPattern: -1)) + number(7, 99))
+    + field(3, number(3, 0)) + number(99, 5)
+do {
+    let v = try tokenizer.ReadSentencePieceModel(proto)
+    check(v.Tokens == ["<unk>", "<s>", "▁hi"] && v.Scores == [0, 0, -1.5] && v.Kinds == [.Unknown, .Control, .Normal],
+          "SentencePiece model: pieces, scores, types")
+    check(v.Unknown == 0 && v.Bos == 1 && v.Eos == nil && !v.AddSpacePrefix, "SentencePiece model: ids (eos -1 is none), no dummy prefix")
+} catch {
+    check(false, "SentencePiece model: \(error)")
+}
+do {
+    _ = try tokenizer.ReadSentencePieceModel(field(1, [0x0A, 0x09, 0x41]))
+    check(false, "a truncated model is refused")
+} catch {
+    check(true, "a truncated model is refused")
+}
+
 print(failures == 0 ? "all passed" : "\(failures) failed")

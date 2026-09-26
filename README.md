@@ -18,10 +18,15 @@ Text format parsers and representations: HTML and CSS tree models, CSS selectors
 
 ## Quick Start
 
-Run any entry point with:
+Run test suites and tools in `cmd/` directly with `vsc run`:
 
 ```bash
-vsc run main.vs
+# Run HTML and CSS checks
+vsc run check
+
+# Run tokenizer tests
+vsc run test-tokenizer
+vsc run test-bpe
 ```
 
 ### Parsing and Querying HTML
@@ -29,8 +34,10 @@ vsc run main.vs
 ```swift
 package main
 
-import "text/html"
-import "text/css/selector"
+import (
+    "text/css/selector"
+    "text/html"
+)
 
 func main() -> int32 {
     let source = """

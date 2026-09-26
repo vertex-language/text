@@ -1,7 +1,9 @@
 package selector
 
-import "text/html"
-import "text/css"
+import (
+    "text/css"
+    "text/html"
+)
 
 public enum Combinator: Equatable {
     case none

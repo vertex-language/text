@@ -1,7 +1,9 @@
 package selector
 
-import "text/html"
-import "text/css"
+import (
+    "text/css"
+    "text/html"
+)
 
 /// Checks if an element node matches a given selector string (can be comma-separated).
 public func Matches(_ selectorString: string, _ node: html.Node) -> bool {

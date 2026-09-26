@@ -1,7 +1,9 @@
 package selector
 
-import "text/html"
-import "text/css"
+import (
+    "text/css"
+    "text/html"
+)
 
 /// What a page's state says about its elements, which the dynamic
 /// pseudo-classes ask: which element the pointer is over, which has the

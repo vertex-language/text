@@ -1,8 +1,10 @@
 package main
 
-import "text/html"
-import "text/css"
-import "text/css/selector"
+import (
+    "text/css"
+    "text/css/selector"
+    "text/html"
+)
 
 var failures = 0
 

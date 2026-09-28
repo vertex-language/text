@@ -2,6 +2,7 @@
 package main
 
 import (
+    "fs"
     "image/draw"
     "text/font"
 )
@@ -107,6 +108,15 @@ func main() -> int32 {
         y += 1
     }
     check(belowBaseline == 0, "Hello has nothing below the baseline (\(belowBaseline))")
+
+    // A font from bytes, as a page's @font-face fetches one, under the
+    // page's name for it.
+    if let bytes = try? fs.ReadFile(fs.Path("/System/Library/Fonts/Supplemental/Andale Mono.ttf")) {
+        check(font.RegisterData(bytes, as: "'Page Mono'"), "a TrueType font registers from its bytes")
+        let face = font.Load(font.Spec(family: "Page Mono", size: 16))
+        check(face.Family == "Andale Mono", "and its family answers to the page's name (got \(face.Family))")
+        check(!font.RegisterData([1, 2, 3, 4], as: "junk"), "bytes that aren't a font don't register")
+    }
 
     if failures == 0 {
         print("ALL FONT CHECKS PASSED")

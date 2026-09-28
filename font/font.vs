@@ -163,6 +163,26 @@ public func Register(path: string, as name: string) -> bool {
     return true
 }
 
+/// Registers a font from its bytes -- a TrueType or OpenType file, as
+/// a page's @font-face fetches one -- under the name given. Answers false
+/// where the bytes aren't a font the platform reads.
+public func RegisterData(_ data: [uint8], as name: string) -> bool {
+    if data.isEmpty { return false }
+    var buf = [CChar](repeating: 0, count: 256)
+    let ok = data.withUnsafeBufferPointer { dp in
+        buf.withUnsafeMutableBufferPointer { bp in
+            fontRegisterData(dp.baseAddress, int32(dp.count), bp.baseAddress, int32(bp.count))
+        }
+    }
+    if ok == 0 { return false }
+    let family = string(cString: buf)
+    if !family.isEmpty {
+        aliases[trimQuotes(name)] = family
+        faces = [:]
+    }
+    return true
+}
+
 /// The face for a spec: the first of its families the system has, at
 /// the size, weight and slant asked for, or the platform's sans-serif
 /// where it has none of them.

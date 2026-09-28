@@ -1,5 +1,10 @@
 package tokenizer
 
+import (
+    "unicode"
+    "unicode/utf8"
+)
+
 /// Split is how text is cut into words before byte-level BPE merges
 /// within each: the pre-tokenizer regex of the model's tokenizer.json,
 /// as llama.cpp implements each by hand (src/unicode.cpp).
@@ -82,7 +87,7 @@ public final class BPE {
                 extra += 1
             }
             var u: [uint8] = []
-            appendUTF8(&u, cp)
+            utf8.Append(&u, cp)
             let s = String(decoding: u, as: UTF8.self)
             chars.append(s)
             back[s] = uint8(b)
@@ -171,7 +176,7 @@ public final class BPE {
         for n in words {
             var bytes: [uint8] = []
             for k in at..<(at + n) {
-                appendUTF8(&bytes, cpts[k])
+                utf8.Append(&bytes, cpts[k])
             }
             at += n
             var chars: [string] = []
@@ -264,56 +269,45 @@ let flagNumber: uint32 = 0x0002
 let flagLetter: uint32 = 0x0004
 let flagWhitespace: uint32 = 0x0100
 
-// flagsOf is a codepoint's category flags, with \s's whitespace bit.
+let flagUndefined: uint32 = 0x0001
+let flagSeparator: uint32 = 0x0008
+let flagAccentMark: uint32 = 0x0010
+let flagPunctuation: uint32 = 0x0020
+let flagSymbol: uint32 = 0x0040
+let flagControl: uint32 = 0x0080
+
+// flagsOf is a codepoint's category flags as llama.cpp's unicode_cpt_flags
+// has them -- one per General_Category group, control for every C but
+// unassigned -- with \s's whitespace bit.
 func flagsOf(_ cp: uint32) -> uint32 {
-    var lo = 0
-    var hi = flagRanges.count / 2 - 1
-    while lo < hi {
-        let mid = (lo + hi + 1) / 2
-        if flagRanges[2 * mid] <= cp {
-            lo = mid
-        } else {
-            hi = mid - 1
-        }
+    var f: uint32
+    switch unicode.Category(cp) {
+    case .uppercaseLetter, .lowercaseLetter, .titlecaseLetter, .modifierLetter, .otherLetter:
+        f = flagLetter
+    case .decimalNumber, .letterNumber, .otherNumber:
+        f = flagNumber
+    case .spaceSeparator, .lineSeparator, .paragraphSeparator:
+        f = flagSeparator
+    case .nonspacingMark, .spacingMark, .enclosingMark:
+        f = flagAccentMark
+    case .connectorPunctuation, .dashPunctuation, .openPunctuation, .closePunctuation,
+         .initialPunctuation, .finalPunctuation, .otherPunctuation:
+        f = flagPunctuation
+    case .mathSymbol, .currencySymbol, .modifierSymbol, .otherSymbol:
+        f = flagSymbol
+    case .control, .format, .surrogate, .privateUse:
+        f = flagControl
+    case .unassigned:
+        f = flagUndefined
     }
-    var f = flagRanges[2 * lo + 1]
-    if isWhitespace(cp) {
+    if unicode.IsWhitespace(cp) {
         f |= flagWhitespace
     }
     return f
 }
 
-func isWhitespace(_ cp: uint32) -> bool {
-    for w in whitespaceSet where w == cp {
-        return true
-    }
-    return false
-}
-
 func codepoints(_ s: string) -> [uint32] {
-    var out: [uint32] = []
-    for u in s.unicodeScalars {
-        out.append(u.value)
-    }
-    return out
-}
-
-func appendUTF8(_ out: inout [uint8], _ cp: uint32) {
-    if cp < 0x80 {
-        out.append(uint8(cp))
-    } else if cp < 0x800 {
-        out.append(uint8(0xC0 | (cp >> 6)))
-        out.append(uint8(0x80 | (cp & 0x3F)))
-    } else if cp < 0x10000 {
-        out.append(uint8(0xE0 | (cp >> 12)))
-        out.append(uint8(0x80 | ((cp >> 6) & 0x3F)))
-        out.append(uint8(0x80 | (cp & 0x3F)))
-    } else {
-        out.append(uint8(0xF0 | (cp >> 18)))
-        out.append(uint8(0x80 | ((cp >> 12) & 0x3F)))
-        out.append(uint8(0x80 | ((cp >> 6) & 0x3F)))
-        out.append(uint8(0x80 | (cp & 0x3F)))
-    }
+    return utf8.CodePoints(s)
 }
 
 func asciiLower(_ c: uint32) -> uint32 {

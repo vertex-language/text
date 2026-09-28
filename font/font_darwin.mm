@@ -144,6 +144,41 @@ int32_t fontRegister(const char* path, char* family, int32_t cap) noexcept {
     }
 }
 
+int32_t fontRegisterData(const uint8_t* data, int32_t len, char* family, int32_t cap) noexcept {
+    if (data == NULL || len <= 0)
+        return 0;
+    @autoreleasepool {
+        CFDataRef bytes = CFDataCreate(kCFAllocatorDefault, data, len);
+        if (bytes == NULL)
+            return 0;
+        CTFontDescriptorRef d = CTFontManagerCreateFontDescriptorFromData(bytes);
+        if (d == NULL) {
+            CFRelease(bytes);
+            return 0;
+        }
+        CGDataProviderRef provider = CGDataProviderCreateWithCFData(bytes);
+        CGFontRef graphics = provider ? CGFontCreateWithDataProvider(provider) : NULL;
+        if (graphics != NULL) {
+            // Registration fails when the same font is already in; the
+            // family is still what the descriptor says.
+            CFErrorRef error = NULL;
+            CTFontManagerRegisterGraphicsFont(graphics, &error);
+            if (error) CFRelease(error);
+            CGFontRelease(graphics);
+        }
+        if (provider) CGDataProviderRelease(provider);
+        CFStringRef name = (CFStringRef)CTFontDescriptorCopyAttribute(d, kCTFontFamilyNameAttribute);
+        if (name != NULL && family != NULL && cap > 0) {
+            if (!CFStringGetCString(name, family, cap, kCFStringEncodingUTF8))
+                family[0] = 0;
+        }
+        if (name) CFRelease(name);
+        CFRelease(d);
+        CFRelease(bytes);
+        return graphics != NULL ? 1 : 0;
+    }
+}
+
 void fontMetrics(int32_t face, double* ascent, double* descent, double* leading,
                    double* x_height, double* space_advance) noexcept {
     CTFontRef font = fontOf(face);

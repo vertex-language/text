@@ -24,6 +24,10 @@ export int32_t fontFace(const char* family, double size, int32_t weight, int32_t
 // answers 1, or 0 where the file is not a font it can read.
 export int32_t fontRegister(const char* path, char* family, int32_t cap) noexcept;
 
+// Registers a font from bytes in memory -- a TrueType or OpenType file a
+// page fetched -- as fontRegister does a file.
+export int32_t fontRegisterData(const uint8_t* data, int32_t len, char* family, int32_t cap) noexcept;
+
 // The face's metrics at its size, in CSS pixels: ascent and descent are
 // positive distances from the baseline; the advance is a space's.
 export void fontMetrics(int32_t face, double* ascent, double* descent, double* leading,

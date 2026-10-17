@@ -331,3 +331,54 @@ int32_t fontGlyph(int32_t face, uint32_t glyph, double scale,
     // bottom left.
     return need;
 }
+
+int32_t fontIsColor(int32_t face) noexcept {
+    CTFontRef font = fontOf(face);
+    if (font == NULL)
+        return 0;
+    return (CTFontGetSymbolicTraits(font) & kCTFontTraitColorGlyphs) != 0 ? 1 : 0;
+}
+
+int32_t fontGlyphColor(int32_t face, uint32_t glyph, double scale,
+                       int32_t* left, int32_t* top, int32_t* width, int32_t* height,
+                       uint8_t* buf, int32_t cap) noexcept {
+    CTFontRef font = scaledFont(face, scale);
+    if (font == NULL)
+        return 0;
+    CGGlyph g = (CGGlyph)glyph;
+    CGRect bounds = CTFontGetBoundingRectsForGlyphs(font, kCTFontOrientationHorizontal, &g, NULL, 1);
+    int32_t x0 = (int32_t)floor(CGRectGetMinX(bounds)) - 1;
+    int32_t y0 = (int32_t)floor(CGRectGetMinY(bounds)) - 1;
+    int32_t x1 = (int32_t)ceil(CGRectGetMaxX(bounds)) + 1;
+    int32_t y1 = (int32_t)ceil(CGRectGetMaxY(bounds)) + 1;
+    int32_t w = x1 - x0;
+    int32_t h = y1 - y0;
+    if (CGRectIsEmpty(bounds) || w <= 0 || h <= 0 || w > 4096 || h > 4096) {
+        if (left) *left = 0;
+        if (top) *top = 0;
+        if (width) *width = 0;
+        if (height) *height = 0;
+        return 0;
+    }
+    if (left) *left = x0;
+    if (top) *top = y1;
+    if (width) *width = w;
+    if (height) *height = h;
+    int32_t need = w * h * 4;
+    if (buf == NULL || cap < need)
+        return need;
+    memset(buf, 0, (size_t)need);
+    CGColorSpaceRef rgb = CGColorSpaceCreateDeviceRGB();
+    // RGBA, premultiplied, red first in memory: what image/draw holds.
+    CGContextRef ctx = CGBitmapContextCreate(buf, (size_t)w, (size_t)h, 8, (size_t)w * 4, rgb,
+                                             kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+    CGColorSpaceRelease(rgb);
+    if (ctx == NULL)
+        return 0;
+    CGContextSetAllowsAntialiasing(ctx, true);
+    CGContextSetShouldAntialias(ctx, true);
+    CGPoint origin = CGPointMake(-(CGFloat)x0, -(CGFloat)y0);
+    CTFontDrawGlyphs(font, &g, &origin, 1, ctx);
+    CGContextRelease(ctx);
+    return need;
+}

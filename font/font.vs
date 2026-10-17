@@ -283,6 +283,53 @@ func rasterize(face: int32, glyph: uint32, scale: float32) -> Glyph {
     return Glyph(Mask: draw.Mask(width: width, height: height, data: data), Left: left, Top: top)
 }
 
+/// A color glyph (an emoji), rasterized at some scale: premultiplied RGBA,
+/// placed as a Glyph's mask is.
+public struct ColorGlyph {
+    public var Image: draw.Image
+    public var Left: int32
+    public var Top: int32
+}
+
+var colorFaces: [int32: bool] = [:]
+var colorGlyphs: [uint64: ColorGlyph?] = [:]
+
+/// Whether a face draws its glyphs in color (Apple Color Emoji): its
+/// glyphs are then ColorGlyph images rather than masks.
+public func IsColor(face: int32) -> bool {
+    if let known = colorFaces[face] { return known }
+    let c = fontIsColor(face) != 0
+    colorFaces[face] = c
+    return c
+}
+
+/// A color face's glyph at a scale, rasterized once and kept; nil for a
+/// face that isn't color, or a glyph with nothing to draw.
+public func GlyphImage(face: int32, glyph: uint32, scale: float32) -> ColorGlyph? {
+    if !IsColor(face: face) { return nil }
+    let q = uint64(scale * 16 + 0.5)
+    let key = (uint64(face) << 40) | (uint64(glyph) << 8) | (q & 0xFF)
+    if let cached = colorGlyphs[key] { return cached }
+    var left: int32 = 0
+    var top: int32 = 0
+    var width: int32 = 0
+    var height: int32 = 0
+    let s = double(float32(q) / 16)
+    var need = fontGlyphColor(face, glyph, s, &left, &top, &width, &height, nil, 0)
+    var made: ColorGlyph? = nil
+    if need > 0 && width > 0 && height > 0 {
+        var data = [uint8](repeating: 0, count: int(need))
+        need = data.withUnsafeMutableBufferPointer { dp in
+            fontGlyphColor(face, glyph, s, &left, &top, &width, &height, dp.baseAddress!, int32(dp.count))
+        }
+        if need > 0 {
+            made = ColorGlyph(Image: draw.Image(width: width, height: height, pixels: data), Left: left, Top: top)
+        }
+    }
+    colorGlyphs[key] = made
+    return made
+}
+
 /// Draws a run on a canvas with its origin at (x, baseline) in device
 /// pixels, at a scale: the glyphs are rasterized at that scale and each
 /// pen advance is scaled to match.
@@ -291,6 +338,14 @@ public func DrawRun(_ canvas: draw.Canvas, _ run: Run, x: float32, baseline: flo
     var pen = x
     var i = 0
     while i < run.Glyphs.count {
+        if let img = GlyphImage(face: run.Faces[i], glyph: run.Glyphs[i], scale: scale) {
+            // A color glyph is its own colors, whatever the text's.
+            let x = draw.RoundToInt(pen) + img.Left, y = draw.RoundToInt(baseline) - img.Top
+            canvas.DrawImage(img.Image, into: draw.IRect(x, y, img.Image.Width, img.Image.Height), opacity: float32(color.A) / 255)
+            pen += run.Advances[i] * scale
+            i += 1
+            continue
+        }
         let g = GlyphMask(face: run.Faces[i], glyph: run.Glyphs[i], scale: scale)
         if !g.IsEmpty {
             canvas.DrawMask(g.Mask, x: draw.RoundToInt(pen) + g.Left, y: draw.RoundToInt(baseline) - g.Top, color)

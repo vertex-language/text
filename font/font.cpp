@@ -47,3 +47,13 @@ export int32_t fontShape(int32_t face, const char* text, int32_t len, uint32_t* 
 // baseline. Writes up to cap bytes and answers how many the mask has.
 export int32_t fontGlyph(int32_t face, uint32_t glyph, double scale, int32_t* left, int32_t* top,
                          int32_t* width, int32_t* height, uint8_t* buf, int32_t cap) noexcept;
+
+// Whether a face draws in color (Apple Color Emoji and other sbix, COLR
+// or SVG fonts): 1, or 0 where its glyphs are coverage alone.
+export int32_t fontIsColor(int32_t face) noexcept;
+
+// A color face's glyph at scale: premultiplied RGBA, width x height
+// rows, top row first, placed as fontGlyph's mask is. Writes up to cap
+// bytes and answers how many the image has (width * height * 4).
+export int32_t fontGlyphColor(int32_t face, uint32_t glyph, double scale, int32_t* left, int32_t* top,
+                              int32_t* width, int32_t* height, uint8_t* buf, int32_t cap) noexcept;

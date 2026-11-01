@@ -19,4 +19,6 @@ import "text/bidi"
 - `func HasRightToLeft(_ text: [uint32]) -> bool`: Whether text holds anything that could put a character right to left.
 - `func FirstStrong(_ text: [uint32]) -> Direction?`: The direction of the first strong character, skipping what isolates hold (P2, P3).
 
+`vsc run test-bidi` runs Unicode's conformance test, `BidiCharacterTest.txt` 17.0.0 (in `cmd/test-bidi/testdata`): every one of its 91,707 paragraphs gets the paragraph level, the levels after L1 and the visual order it lists.
+
 Shaping is not here: `text/font` shapes a run of one direction, and CoreText orders the glyphs inside it.

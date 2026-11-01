@@ -20,6 +20,7 @@ Text, as algorithms rather than formats: fonts and shaping, and tokenizers for l
 ```bash
 vsc run check-font
 vsc run check-bidi
+vsc run test-bidi
 vsc run test-tokenizer
 vsc run test-bpe
 ```

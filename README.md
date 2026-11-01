@@ -1,7 +1,7 @@
 # text
 
 [![package: vs-package](https://img.shields.io/badge/package-vs--package-f4f4f5?style=flat-square&labelColor=e4e4e7&color=18181b)](https://github.com/vertex-language)
-[![text: font | tokenizer](https://img.shields.io/badge/text-font%20%7C%20tokenizer-f4f4f5?style=flat-square&labelColor=e4e4e7&color=18181b)](https://github.com/vertex-language/text)
+[![text: font | tokenizer](https://img.shields.io/badge/text-font%20%7C%20bidi%20%7C%20tokenizer-f4f4f5?style=flat-square&labelColor=e4e4e7&color=18181b)](https://github.com/vertex-language/text)
 
 Text, as algorithms rather than formats: fonts and shaping, and tokenizers for language models. HTML and CSS are the `web` repository's.
 
@@ -10,6 +10,7 @@ Text, as algorithms rather than formats: fonts and shaping, and tokenizers for l
 ## Packages
 
 - **`text/font`**: Faces by family, size, weight and slant; text shaped into glyphs with a per-word cache; glyph masks at any scale, drawn onto an `image/draw` canvas. The OS shapes and rasterizes: CoreText on macOS (`font.cpp`, module `text.font`, and `font_darwin.mm`).
+- **`text/bidi`**: The Unicode Bidirectional Algorithm (UAX #9): each character's embedding level in a paragraph, with explicit embeddings, overrides, isolates and paired brackets, then a line's visual order (L1, L2) and mirrored brackets.
 - **`text/tokenizer`**: Text to a model's token ids and back, driven by the model's vocabulary data. `SentencePiece` works as llama.cpp's `llm_tokenizer_spm` does: score-ordered merges of adjacent pieces, `▁` for spaces, a dummy prefix, and `<0xXX>` byte fallback. `Encode`, `Decode` (with llama.cpp's leading-space rule) and `Piece` (a token's bytes, for streaming). A `Vocabulary` holds tokens, scores and kinds, the special ids, and whether BOS, EOS and the space prefix are added. It is built from a GGUF file's `tokenizer.ggml.*` keys (`model/llama.Vocabulary`).
 
 ---
@@ -18,6 +19,7 @@ Text, as algorithms rather than formats: fonts and shaping, and tokenizers for l
 
 ```bash
 vsc run check-font
+vsc run check-bidi
 vsc run test-tokenizer
 vsc run test-bpe
 ```

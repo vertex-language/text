@@ -17,7 +17,7 @@ public enum ModelError: Error, CustomStringConvertible {
 /// its normalizer adds the dummy prefix. Adding BOS and EOS is not in the
 /// file; the defaults are Llama's (BOS, no EOS), and a caller with a
 /// tokenizer_config.json sets them from it.
-public func ReadSentencePieceModel(_ bytes: [uint8]) throws -> Vocabulary {
+public func ReadSentencePieceModel(bytes: [uint8]) throws -> Vocabulary {
     var tokens: [string] = []
     var scores: [float32] = []
     var kinds: [Kind] = []
@@ -71,7 +71,7 @@ public func ReadSentencePieceModel(_ bytes: [uint8]) throws -> Vocabulary {
     if tokens.isEmpty {
         throw ModelError.malformed("a SentencePiece model with no pieces")
     }
-    func id(_ i: int) -> int? {
+    func id(i: int) -> int? {
         return i >= 0 && i < tokens.count ? i : nil
     }
     return Vocabulary(tokens: tokens, scores: scores, kinds: kinds, bos: id(bos), eos: id(eos), unknown: id(unk),
@@ -84,7 +84,7 @@ struct protoReader {
     var at: int
     let end: int
 
-    init(_ b: [uint8], _ at: int, _ end: int) {
+    init(b: [uint8], at: int, end: int) {
         self.b = b
         self.at = at
         self.end = end
@@ -147,7 +147,7 @@ struct protoReader {
         return float32(bitPattern: bits)
     }
 
-    mutating func skip(_ wire: int) throws {
+    mutating func skip(wire: int) throws {
         switch wire {
         case 0: _ = try varint()
         case 1: at += 8

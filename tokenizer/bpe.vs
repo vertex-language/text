@@ -23,7 +23,7 @@ public enum Split: Equatable {
 
     /// Named is the Split for a GGUF tokenizer.ggml.pre, or nil for one this
     /// does not implement.
-    public static func Named(_ pre: string) -> Split? {
+    public static func Named(pre: string) -> Split? {
         switch pre {
         case "default", "gpt-2", "gpt2", "mpt", "olmo", "jais", "trillion", "granite-docling":
             return .gpt2
@@ -59,7 +59,7 @@ public final class BPE {
     // vocabulary marks UserDefined (llama.cpp does so without parse_special).
     let _userDefined: [(string, int)]
 
-    public init(_ vocab: Vocabulary, split: Split, ignoreMerges: bool? = nil) {
+    public init(vocab: Vocabulary, split: Split, ignoreMerges: bool? = nil) {
         self.Vocab = vocab
         self.Split = split
         // llama.cpp sets it for Llama 3's pre-tokenizer, whose
@@ -106,7 +106,7 @@ public final class BPE {
 
     /// Encode is text's tokens; with addSpecial, the Bos and Eos the
     /// vocabulary says to add go around them.
-    public func Encode(_ text: string, addSpecial: bool = true) -> [int] {
+    public func Encode(text: string, addSpecial: bool = true) -> [int] {
         var out: [int] = []
         if addSpecial && Vocab.AddBos, let bos = Vocab.Bos {
             out.append(bos)
@@ -125,7 +125,7 @@ public final class BPE {
     }
 
     // partition cuts text around the user-defined tokens it holds.
-    func partition(_ text: string) -> [(string, int?)] {
+    func partition(text: string) -> [(string, int?)] {
         if _userDefined.isEmpty {
             return [(text, nil)]
         }
@@ -158,7 +158,7 @@ public final class BPE {
         return out
     }
 
-    func encodeText(_ text: string, _ out: inout [int]) {
+    func encodeText(text: string, out: inout [int]) {
         let cpts = codepoints(text)
         var words = [cpts.count]
         if Split == .digitsThenGPT2 {
@@ -193,7 +193,7 @@ public final class BPE {
 
     // merge runs BPE over one word's characters and appends its tokens:
     // the lowest-ranked adjacent pair merged first, the leftmost of equals.
-    func merge(_ chars: [string], _ out: inout [int]) {
+    func merge(chars: [string], out: inout [int]) {
         var symbols = chars
         while symbols.count > 1 {
             var best = -1
@@ -227,7 +227,7 @@ public final class BPE {
     /// Decode is the text of ids: each token's characters taken back to
     /// the bytes they spell. With removeSpecial, the Bos and Eos encoding
     /// added are dropped; control tokens are skipped unless special.
-    public func Decode(_ ids: [int], removeSpecial: bool = false, special: bool = false) -> string {
+    public func Decode(ids: [int], removeSpecial: bool = false, special: bool = false) -> string {
         var ids = ids
         if removeSpecial && Vocab.AddBos && !ids.isEmpty && ids[0] == Vocab.Bos {
             ids.removeFirst()
@@ -279,7 +279,7 @@ let flagControl: uint32 = 0x0080
 // flagsOf is a codepoint's category flags as llama.cpp's unicode_cpt_flags
 // has them -- one per General_Category group, control for every C but
 // unassigned -- with \s's whitespace bit.
-func flagsOf(_ cp: uint32) -> uint32 {
+func flagsOf(cp: uint32) -> uint32 {
     var f: uint32
     switch unicode.Category(cp) {
     case .uppercaseLetter, .lowercaseLetter, .titlecaseLetter, .modifierLetter, .otherLetter:
@@ -306,11 +306,11 @@ func flagsOf(_ cp: uint32) -> uint32 {
     return f
 }
 
-func codepoints(_ s: string) -> [uint32] {
+func codepoints(s: string) -> [uint32] {
     return utf8.CodePoints(s)
 }
 
-func asciiLower(_ c: uint32) -> uint32 {
+func asciiLower(c: uint32) -> uint32 {
     return c >= 0x41 && c <= 0x5A ? c + 32 : c
 }
 
@@ -323,19 +323,19 @@ struct splitter {
     var prevEnd: int = 0
     var out: [int] = []
 
-    init(_ cpts: [uint32]) {
+    init(cpts: [uint32]) {
         self.cpts = cpts
     }
 
-    func cpt(_ pos: int) -> uint32 {
+    func cpt(pos: int) -> uint32 {
         return pos >= ini && pos < end ? cpts[pos] : outOfRange
     }
 
-    func flags(_ pos: int) -> uint32 {
+    func flags(pos: int) -> uint32 {
         return pos >= ini && pos < end ? flagsOf(cpts[pos]) : 0
     }
 
-    mutating func add(_ at: int) -> int {
+    mutating func add(at: int) -> int {
         let n = at - prevEnd
         if n > 0 {
             out.append(n)
@@ -346,7 +346,7 @@ struct splitter {
 }
 
 // splitDigits isolates each \p{N} codepoint, keeping what lies between.
-func splitDigits(_ cpts: [uint32], _ words: [int]) -> [int] {
+func splitDigits(cpts: [uint32], words: [int]) -> [int] {
     var out: [int] = []
     var start = 0
     for w in words {
@@ -366,7 +366,7 @@ func splitDigits(_ cpts: [uint32], _ words: [int]) -> [int] {
     return out
 }
 
-func splitGPT2(_ cpts: [uint32], _ words: [int]) -> [int] {
+func splitGPT2(cpts: [uint32], words: [int]) -> [int] {
     var s = splitter(cpts)
     var start = 0
     for w in words {
@@ -447,7 +447,7 @@ func splitGPT2(_ cpts: [uint32], _ words: [int]) -> [int] {
     return s.out
 }
 
-func splitLlama3(_ cpts: [uint32], _ words: [int], maxDigits: int) -> [int] {
+func splitLlama3(cpts: [uint32], words: [int], maxDigits: int) -> [int] {
     var s = splitter(cpts)
     var start = 0
     for w in words {

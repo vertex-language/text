@@ -21,7 +21,7 @@ let maxDepth: uint8 = 125
 /// left: a right-to-left letter, an Arabic number, or a right-to-left
 /// embedding, override or isolate. Text without one in a left-to-right
 /// paragraph needs no reordering.
-public func HasRightToLeft(_ text: [uint32]) -> bool {
+public func HasRightToLeft(text: [uint32]) -> bool {
     for cp in text {
         switch unicode.BidiClassOf(cp) {
         case .R, .AL, .AN, .RLE, .RLO, .RLI, .FSI: return true
@@ -33,13 +33,13 @@ public func HasRightToLeft(_ text: [uint32]) -> bool {
 
 /// The direction of the first strong character of text, skipping what
 /// isolates hold (P2 and P3), or nil where it has none.
-public func FirstStrong(_ text: [uint32]) -> Direction? {
+public func FirstStrong(text: [uint32]) -> Direction? {
     var classes: [unicode.BidiClass] = []
     for cp in text { classes.append(unicode.BidiClassOf(cp)) }
     return firstStrong(classes, 0, classes.count)
 }
 
-func firstStrong(_ classes: [unicode.BidiClass], _ from: int, _ to: int) -> Direction? {
+func firstStrong(classes: [unicode.BidiClass], from: int, to: int) -> Direction? {
     var depth = 0
     var i = from
     while i < to {
@@ -61,7 +61,7 @@ func firstStrong(_ classes: [unicode.BidiClass], _ from: int, _ to: int) -> Dire
 /// The embedding levels of a paragraph's characters, and the
 /// paragraph's own level. With no base direction the first strong
 /// character chooses it (left to right where there is none).
-public func Levels(_ text: [uint32], base: Direction?) -> (levels: [uint8], base: uint8) {
+public func Levels(text: [uint32], base: Direction?) -> (levels: [uint8], base: uint8) {
     let n = text.count
     var classes: [unicode.BidiClass] = []
     for cp in text { classes.append(unicode.BidiClassOf(cp)) }
@@ -242,7 +242,7 @@ public func Levels(_ text: [uint32], base: Direction?) -> (levels: [uint8], base
 
 /// Each isolate initiator's matching PDI and each PDI's initiator
 /// (BD9), or -1.
-func matchIsolates(_ classes: [unicode.BidiClass]) -> [int] {
+func matchIsolates(classes: [unicode.BidiClass]) -> [int] {
     var out = [int](repeating: -1, count: classes.count)
     var open: [int] = []
     var i = 0
@@ -262,7 +262,7 @@ func matchIsolates(_ classes: [unicode.BidiClass]) -> [int] {
     return out
 }
 
-func isNeutralOrIsolate(_ c: unicode.BidiClass) -> bool {
+func isNeutralOrIsolate(c: unicode.BidiClass) -> bool {
     switch c {
     case .B, .S, .WS, .ON, .LRI, .RLI, .FSI, .PDI: return true
     default: return false
@@ -270,8 +270,8 @@ func isNeutralOrIsolate(_ c: unicode.BidiClass) -> bool {
 }
 
 /// W1 to W7, N0 to N2 over one isolating run sequence.
-func resolveSequence(_ seq: [int], _ classes: inout [unicode.BidiClass], _ original: [unicode.BidiClass], _ text: [uint32],
-                     _ level: uint8, _ sos: unicode.BidiClass, _ eos: unicode.BidiClass) {
+func resolveSequence(seq: [int], classes: inout [unicode.BidiClass], original: [unicode.BidiClass], text: [uint32],
+                     level: uint8, sos: unicode.BidiClass, eos: unicode.BidiClass) {
     let m = seq.count
     // W1: a non-spacing mark takes the class before it.
     var j = 0
@@ -348,7 +348,7 @@ func resolveSequence(_ seq: [int], _ classes: inout [unicode.BidiClass], _ origi
     let embedding: unicode.BidiClass = level & 1 == 1 ? .R : .L
     // The strong direction a class gives the neutral rules: numbers
     // count as R.
-    func strong(_ c: unicode.BidiClass) -> unicode.BidiClass? {
+    func strong(c: unicode.BidiClass) -> unicode.BidiClass? {
         switch c {
         case .L: return .L
         case .R, .EN, .AN: return .R
@@ -440,14 +440,14 @@ func resolveSequence(_ seq: [int], _ classes: inout [unicode.BidiClass], _ origi
 /// segment and paragraph separators, and the whitespace and isolate
 /// formatters before them or at the line's end, to the paragraph's
 /// level.
-public func LineLevels(_ text: [uint32], _ levels: [uint8], base: uint8, from: int, to: int) -> [uint8] {
+public func LineLevels(text: [uint32], levels: [uint8], base: uint8, from: int, to: int) -> [uint8] {
     var out: [uint8] = []
     var i = from
     while i < to {
         out.append(levels[i])
         i += 1
     }
-    func trailing(_ c: unicode.BidiClass) -> bool {
+    func trailing(c: unicode.BidiClass) -> bool {
         switch c {
         case .WS, .LRI, .RLI, .FSI, .PDI, .BN, .LRE, .RLE, .LRO, .RLO, .PDF: return true
         default: return false
@@ -474,7 +474,7 @@ public func LineLevels(_ text: [uint32], _ levels: [uint8], base: uint8, from: i
 /// The order a line's characters show in, left to right, as indexes
 /// into levels (L2): from the highest level down to the lowest odd one,
 /// every run at that level or above is reversed.
-public func VisualOrder(_ levels: [uint8]) -> [int] {
+public func VisualOrder(levels: [uint8]) -> [int] {
     var order: [int] = []
     var i = 0
     while i < levels.count {
@@ -542,25 +542,25 @@ let otherMirrors: [(uint32, uint32)] = [
 
 /// U+2329 and U+232A are canonically U+3008 and U+3009, and pair with
 /// them.
-func canonicalBracket(_ cp: uint32) -> uint32 {
+func canonicalBracket(cp: uint32) -> uint32 {
     if cp == 0x2329 { return 0x3008 }
     if cp == 0x232A { return 0x3009 }
     return cp
 }
 
-func closingBracket(_ cp: uint32) -> uint32? {
+func closingBracket(cp: uint32) -> uint32? {
     for (o, c) in bracketPairs where o == cp { return canonicalBracket(c) }
     return nil
 }
 
-func isClosingBracket(_ cp: uint32) -> bool {
+func isClosingBracket(cp: uint32) -> bool {
     for (_, c) in bracketPairs where canonicalBracket(c) == cp { return true }
     return false
 }
 
 /// The character that shows in cp's place at an odd level: a bracket
 /// or other mirrored character's pair, or cp itself.
-public func Mirror(_ cp: uint32) -> uint32 {
+public func Mirror(cp: uint32) -> uint32 {
     for (a, b) in bracketPairs {
         if a == cp { return b }
         if b == cp { return a }

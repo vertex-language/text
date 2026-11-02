@@ -45,7 +45,7 @@ final class Node {
     /// A lookaround's sense: false for (?! and (?<!.
     var positive: bool = true
 
-    init(_ kind: Kind) {
+    init(kind: Kind) {
         self.kind = kind
     }
 }
@@ -57,7 +57,7 @@ final class CharSet {
     var tests: [(uint32) -> bool] = []
     var negated: bool = false
 
-    func contains(_ c: uint32, _ fold: bool) -> bool {
+    func contains(c: uint32, fold: bool) -> bool {
         var hit = has(c)
         if !hit && fold {
             let f = unicode.CaseFold(c)
@@ -66,7 +66,7 @@ final class CharSet {
         return hit != negated
     }
 
-    func has(_ c: uint32) -> bool {
+    func has(c: uint32) -> bool {
         for (lo, hi) in ranges where c >= lo && c <= hi { return true }
         for t in tests where t(c) { return true }
         return false
@@ -93,7 +93,7 @@ public final class Regexp {
 
     /// Compile parses a pattern with flags ("i", "m", "s", "u", "v" in
     /// any mix), or answers nil where it isn't a valid pattern.
-    public static func Compile(_ pattern: string, flags: string = "") -> Regexp? {
+    public static func Compile(pattern: string, flags: string = "") -> Regexp? {
         for f in flags where !"imsuvgdy".contains(f) { return nil }
         var p = Parser(pattern)
         guard let root = p.alternation(), p.atEnd else { return nil }
@@ -103,20 +103,20 @@ public final class Regexp {
     }
 
     /// Whether the pattern matches somewhere in s.
-    public func Matches(_ s: string) -> bool {
+    public func Matches(s: string) -> bool {
         return Find(s) != nil
     }
 
     /// Whether the pattern matches the whole of s, as HTML's pattern
     /// attribute asks (`^(?:pattern)$`).
-    public func MatchesWhole(_ s: string) -> bool {
+    public func MatchesWhole(s: string) -> bool {
         let m = Matcher(self, scalars(s))
         return m.run(at: 0, whole: true) != nil
     }
 
     /// The first match in s: where it starts and ends, in scalars, and
     /// each group's text (nil for a group that didn't take part).
-    public func Find(_ s: string) -> (start: int, end: int, groups: [string?])? {
+    public func Find(s: string) -> (start: int, end: int, groups: [string?])? {
         let text = scalars(s)
         let m = Matcher(self, text)
         var i = 0
@@ -137,18 +137,18 @@ public final class Regexp {
     }
 
     /// A named group's number, or nil.
-    public func GroupIndex(_ name: string) -> int? {
+    public func GroupIndex(name: string) -> int? {
         return names[name]
     }
 }
 
-func scalars(_ s: string) -> [uint32] {
+func scalars(s: string) -> [uint32] {
     var out: [uint32] = []
     for u in s.unicodeScalars { out.append(u.value) }
     return out
 }
 
-func stringOf(_ text: [uint32], _ a: int, _ b: int) -> string {
+func stringOf(text: [uint32], a: int, b: int) -> string {
     var out = ""
     var i = a
     while i < b {
@@ -169,7 +169,7 @@ final class Matcher {
     var steps = 0
     let budget = 2_000_000
 
-    init(_ re: Regexp, _ text: [uint32]) {
+    init(re: Regexp, text: [uint32]) {
         self.re = re
         self.text = text
         captures = Array(repeating: (-1, -1), count: re.groups + 1)
@@ -191,21 +191,21 @@ final class Matcher {
         return ok ? end : nil
     }
 
-    func isWord(_ c: uint32) -> bool {
+    func isWord(c: uint32) -> bool {
         return (c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c == 95
     }
 
-    func isLineEnd(_ c: uint32) -> bool {
+    func isLineEnd(c: uint32) -> bool {
         return c == 10 || c == 13 || c == 0x2028 || c == 0x2029
     }
 
-    func same(_ a: uint32, _ b: uint32) -> bool {
+    func same(a: uint32, b: uint32) -> bool {
         if a == b { return true }
         return re.fold && unicode.CaseFold(a) == unicode.CaseFold(b)
     }
 
     /// Whether node matches at i with what follows (k) matching after.
-    func match(_ node: Node, _ i: int, _ k: (int) -> bool) -> bool {
+    func match(node: Node, i: int, k: (int) -> bool) -> bool {
         steps += 1
         if steps > budget { return false }
         switch node.kind {
@@ -281,14 +281,14 @@ final class Matcher {
         }
     }
 
-    func seq(_ parts: [Node], _ at: int, _ i: int, _ k: (int) -> bool) -> bool {
+    func seq(parts: [Node], at: int, i: int, k: (int) -> bool) -> bool {
         if at == parts.count { return k(i) }
         return match(parts[at], i, { j in self.seq(parts, at + 1, j, k) })
     }
 
     /// A quantifier after `count` turns, at i; last is where the turn
     /// before began, so an empty turn doesn't go round forever.
-    func repeatFrom(_ node: Node, _ count: int, _ i: int, _ last: int, _ k: (int) -> bool) -> bool {
+    func repeatFrom(node: Node, count: int, i: int, last: int, k: (int) -> bool) -> bool {
         let body = node.children[0]
         if count < node.min {
             return match(body, i, { j in self.repeatFrom(node, count + 1, j, i, k) })
@@ -314,17 +314,17 @@ struct Parser {
     var backrefs: [int] = []
     var failed = false
 
-    init(_ pattern: string) {
+    init(pattern: string) {
         p = scalars(pattern)
     }
 
     var atEnd: bool { return i >= p.count }
 
-    func peek(_ k: int = 0) -> uint32 {
+    func peek(k: int = 0) -> uint32 {
         return i + k < p.count ? p[i + k] : 0
     }
 
-    mutating func eat(_ c: uint32) -> bool {
+    mutating func eat(c: uint32) -> bool {
         if i < p.count && p[i] == c {
             i += 1
             return true
@@ -356,7 +356,7 @@ struct Parser {
         return n
     }
 
-    mutating func quantifier(_ atom: Node) -> Node? {
+    mutating func quantifier(atom: Node) -> Node? {
         var lo = 0
         var hi = -1
         let c = peek()
@@ -485,7 +485,7 @@ struct Parser {
 
     /// One member of a class: a character (answered), or a named class
     /// (added to set, answered nil).
-    mutating func classAtom(_ set: CharSet) -> uint32? {
+    mutating func classAtom(set: CharSet) -> uint32? {
         let c = p[i]
         i += 1
         if c != 92 { return c }
@@ -581,7 +581,7 @@ struct Parser {
         }
     }
 
-    mutating func hex(_ n: int) -> uint32? {
+    mutating func hex(n: int) -> uint32? {
         var v: uint32 = 0
         var k = 0
         while k < n {
@@ -594,13 +594,13 @@ struct Parser {
     }
 }
 
-func char(_ v: uint32) -> Node {
+func char(v: uint32) -> Node {
     let n = Node(.char)
     n.char = v
     return n
 }
 
-func set(_ test: @escaping (uint32) -> bool, _ negated: bool) -> Node {
+func set(test: @escaping (uint32) -> bool, negated: bool) -> Node {
     let s = CharSet()
     s.tests.append(test)
     s.negated = negated
@@ -609,7 +609,7 @@ func set(_ test: @escaping (uint32) -> bool, _ negated: bool) -> Node {
     return n
 }
 
-func hexValue(_ c: uint32) -> uint32? {
+func hexValue(c: uint32) -> uint32? {
     if c >= 48 && c <= 57 { return c - 48 }
     if c >= 65 && c <= 70 { return c - 55 }
     if c >= 97 && c <= 102 { return c - 87 }
@@ -619,7 +619,7 @@ func hexValue(_ c: uint32) -> uint32? {
 /// \p{...}: a general category (L, Lu, Letter, ...), Script= or
 /// Script_Extensions= a script, or a binary property (Alphabetic,
 /// White_Space, Emoji, ...).
-func propertyTest(_ name: string) -> ((uint32) -> bool)? {
+func propertyTest(name: string) -> ((uint32) -> bool)? {
     var key = name
     var value = ""
     if let eq = name.firstIndex(of: "=") {
@@ -648,7 +648,7 @@ func propertyTest(_ name: string) -> ((uint32) -> bool)? {
 
 /// A general category by its short name or long one, single letter for
 /// the group (L is every letter).
-func categoryTest(_ name: string) -> ((uint32) -> bool)? {
+func categoryTest(name: string) -> ((uint32) -> bool)? {
     let long: [string: string] = [
         "Letter": "L", "Cased_Letter": "LC", "Uppercase_Letter": "Lu", "Lowercase_Letter": "Ll", "Titlecase_Letter": "Lt",
         "Modifier_Letter": "Lm", "Other_Letter": "Lo", "Mark": "M", "Nonspacing_Mark": "Mn", "Spacing_Mark": "Mc",

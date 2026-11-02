@@ -88,7 +88,7 @@ public final class Face {
     /// Shapes a word: glyphs and advances, kept for the next time the
     /// same word is asked for. A browser shapes per word for the same
     /// reason: pages repeat theirs.
-    public func Shape(_ text: string) -> Run {
+    public func Shape(text: string) -> Run {
         if let cached = runs[text] {
             return cached
         }
@@ -97,7 +97,7 @@ public final class Face {
         return run
     }
 
-    func shape(_ text: string) -> Run {
+    func shape(text: string) -> Run {
         var run = Run()
         let bytes = [uint8](text.utf8)
         if bytes.isEmpty { return run }
@@ -134,7 +134,7 @@ public final class Face {
     }
 
     /// The width of text set in this face.
-    public func Measure(_ text: string) -> float32 {
+    public func Measure(text: string) -> float32 {
         return Shape(text).Width
     }
 }
@@ -166,7 +166,7 @@ public func Register(path: string, as name: string) -> bool {
 /// Registers a font from its bytes -- a TrueType or OpenType file, as
 /// a page's @font-face fetches one -- under the name given. Answers false
 /// where the bytes aren't a font the platform reads.
-public func RegisterData(_ data: [uint8], as name: string) -> bool {
+public func RegisterData(data: [uint8], as name: string) -> bool {
     if data.isEmpty { return false }
     var buf = [CChar](repeating: 0, count: 256)
     let ok = data.withUnsafeBufferPointer { dp in
@@ -186,7 +186,7 @@ public func RegisterData(_ data: [uint8], as name: string) -> bool {
 /// The face for a spec: the first of its families the system has, at
 /// the size, weight and slant asked for, or the platform's sans-serif
 /// where it has none of them.
-public func Load(_ spec: Spec) -> Face {
+public func Load(spec: Spec) -> Face {
     let key = spec.Families.isEmpty ? "" : spec.Families[0]
     let known = faces[key] ?? []
     for f in known {
@@ -221,7 +221,7 @@ public func Load(_ spec: Spec) -> Face {
     return face
 }
 
-func sameList(_ a: [string], _ b: [string]) -> bool {
+func sameList(a: [string], b: [string]) -> bool {
     if a.count != b.count { return false }
     var i = 0
     while i < a.count {
@@ -231,7 +231,7 @@ func sameList(_ a: [string], _ b: [string]) -> bool {
     return true
 }
 
-func trimQuotes(_ s: string) -> string {
+func trimQuotes(s: string) -> string {
     let b = [uint8](s.utf8)
     var start = 0
     var end = b.count
@@ -333,7 +333,7 @@ public func GlyphImage(face: int32, glyph: uint32, scale: float32) -> ColorGlyph
 /// Draws a run on a canvas with its origin at (x, baseline) in device
 /// pixels, at a scale: the glyphs are rasterized at that scale and each
 /// pen advance is scaled to match.
-public func DrawRun(_ canvas: draw.Canvas, _ run: Run, x: float32, baseline: float32, scale: float32, color: draw.Color) {
+public func DrawRun(canvas: draw.Canvas, run: Run, x: float32, baseline: float32, scale: float32, color: draw.Color) {
     if color.A == 0 { return }
     var pen = x
     var i = 0
@@ -356,10 +356,10 @@ public func DrawRun(_ canvas: draw.Canvas, _ run: Run, x: float32, baseline: flo
 }
 
 @_silgen_name("vertex_string_from_utf8")
-func stringFromUtf8(_ ptr: UnsafeRawPointer, _ count: int64) -> string
+func stringFromUtf8(ptr: UnsafeRawPointer, count: int64) -> string
 
 /// The string bytes[start..<end] spell.
-func stringOf(_ bytes: [uint8], _ start: int, _ end: int) -> string {
+func stringOf(bytes: [uint8], start: int, end: int) -> string {
     if start >= end { return "" }
     return bytes.withUnsafeBytes { bp in
         stringFromUtf8(bp.baseAddress! + start, int64(end - start))

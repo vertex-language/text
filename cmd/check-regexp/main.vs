@@ -6,7 +6,7 @@ import "text/regexp"
 
 var failures = 0
 
-func check(_ ok: bool, _ what: string) {
+func check(ok: bool, what: string) {
     if ok {
         print("ok    \(what)")
     } else {
@@ -15,7 +15,7 @@ func check(_ ok: bool, _ what: string) {
     }
 }
 
-func whole(_ p: string, _ s: string, _ flags: string = "v") -> bool {
+func whole(p: string, s: string, flags: string = "v") -> bool {
     guard let re = regexp.Regexp.Compile(p, flags: flags) else { return false }
     return re.MatchesWhole(s)
 }

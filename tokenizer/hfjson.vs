@@ -13,7 +13,7 @@ let gpt2Pattern = "'s|'t|'re|'ve|'m|'ll|'d| ?\\p{L}+| ?\\p{N}+| ?[^\\s\\p{L}\\p{
 /// them. It reads byte-level BPE -- the tokenizer of GPT-2, Llama 3, Qwen,
 /// SmolLM and most models since -- with the pre-tokenizers Split names;
 /// anything else is refused, saying what it is.
-public func ReadTokenizerJSON(_ bytes: [uint8], config: [uint8]? = nil) throws -> Tokenizer {
+public func ReadTokenizerJSON(bytes: [uint8], config: [uint8]? = nil) throws -> Tokenizer {
     let doc = try json.Parse(bytes: bytes)
     guard let model = doc["model"] else {
         throw ModelError.malformed("tokenizer.json has no model")
@@ -75,7 +75,7 @@ public func ReadTokenizerJSON(_ bytes: [uint8], config: [uint8]? = nil) throws -
     if let c = config {
         cfg = try json.Parse(bytes: c)
     }
-    func tokenText(_ v: json.Value?) -> string? {
+    func tokenText(v: json.Value?) -> string? {
         return v?.String ?? v?["content"]?.String
     }
     if let t = tokenText(cfg?["bos_token"]) { bos = byText[t] }
@@ -102,7 +102,7 @@ public func ReadTokenizerJSON(_ bytes: [uint8], config: [uint8]? = nil) throws -
 // splitOf is the Split a pre_tokenizer is: a ByteLevel with its GPT-2
 // regex; a Sequence of Split(regex) and a ByteLevel without one; or
 // Digits(individual) then a ByteLevel.
-func splitOf(_ pre: json.Value?) throws -> Split {
+func splitOf(pre: json.Value?) throws -> Split {
     guard let p = pre, let kind = p["type"]?.String else {
         throw ModelError.malformed("a tokenizer.json with no pre_tokenizer")
     }

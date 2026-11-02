@@ -16,17 +16,17 @@ public enum Algorithm {
 public final class Tokenizer {
     public let Algorithm: Algorithm
 
-    public init(_ algorithm: Algorithm) {
+    public init(algorithm: Algorithm) {
         self.Algorithm = algorithm
     }
 
     /// SentencePiece is a SentencePiece tokenizer of vocab.
-    public static func SentencePiece(_ vocab: Vocabulary) -> Tokenizer {
+    public static func SentencePiece(vocab: Vocabulary) -> Tokenizer {
         return Tokenizer(.sentencePiece(tokenizer.SentencePiece(vocab)))
     }
 
     /// BPE is a byte-level BPE tokenizer of vocab, its words cut by split.
-    public static func BPE(_ vocab: Vocabulary, split: Split, ignoreMerges: bool? = nil) -> Tokenizer {
+    public static func BPE(vocab: Vocabulary, split: Split, ignoreMerges: bool? = nil) -> Tokenizer {
         return Tokenizer(.bpe(tokenizer.BPE(vocab, split: split, ignoreMerges: ignoreMerges)))
     }
 
@@ -43,7 +43,7 @@ public final class Tokenizer {
 
     /// Encode is text's tokens; with addSpecial, the Bos and Eos the
     /// vocabulary says to add go around them.
-    public func Encode(_ text: string, addSpecial: bool = true) -> [int] {
+    public func Encode(text: string, addSpecial: bool = true) -> [int] {
         switch Algorithm {
         case .sentencePiece(let sp): return sp.Encode(text, addSpecial: addSpecial)
         case .bpe(let b): return b.Encode(text, addSpecial: addSpecial)
@@ -53,7 +53,7 @@ public final class Tokenizer {
     /// Decode is the text of ids. With removeSpecial, the Bos and Eos that
     /// encoding added are dropped; with special, control tokens are
     /// written out rather than skipped.
-    public func Decode(_ ids: [int], removeSpecial: bool = false, special: bool = false) -> string {
+    public func Decode(ids: [int], removeSpecial: bool = false, special: bool = false) -> string {
         switch Algorithm {
         case .sentencePiece(let sp): return sp.Decode(ids, removeSpecial: removeSpecial, special: special)
         case .bpe(let b): return b.Decode(ids, removeSpecial: removeSpecial, special: special)

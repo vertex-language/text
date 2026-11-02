@@ -6,7 +6,7 @@ import "text/bidi"
 
 var failures = 0
 
-func check(_ ok: bool, _ what: string) {
+func check(ok: bool, what: string) {
     if ok {
         print("ok    \(what)")
     } else {
@@ -15,32 +15,32 @@ func check(_ ok: bool, _ what: string) {
     }
 }
 
-func scalars(_ s: string) -> [uint32] {
+func scalars(s: string) -> [uint32] {
     var out: [uint32] = []
     for u in s.unicodeScalars { out.append(u.value) }
     return out
 }
 
-func levels(_ s: string, _ base: bidi.Direction?) -> [uint8] {
+func levels(s: string, base: bidi.Direction?) -> [uint8] {
     return bidi.Levels(scalars(s), base: base).levels
 }
 
 /// The levels as digits, one per character, for reading at a glance.
-func digits(_ l: [uint8]) -> string {
+func digits(l: [uint8]) -> string {
     var out = ""
     for v in l { out += "\(v)" }
     return out
 }
 
 /// The levels at some positions, as digits.
-func kept(_ l: [uint8], _ at: [int]) -> string {
+func kept(l: [uint8], at: [int]) -> string {
     var out = ""
     for i in at { out += "\(l[i])" }
     return out
 }
 
 /// The text in the order it shows, after L1 over the whole as one line.
-func visual(_ s: string, _ base: bidi.Direction?) -> string {
+func visual(s: string, base: bidi.Direction?) -> string {
     let text = scalars(s)
     let p = bidi.Levels(text, base: base)
     let line = bidi.LineLevels(text, p.levels, base: p.base, from: 0, to: text.count)

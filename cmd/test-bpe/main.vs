@@ -12,18 +12,18 @@ import (
 
 var failures = 0
 
-func check(_ ok: bool, _ what: string) {
+func check(ok: bool, what: string) {
     print(ok ? "ok    \(what)" : "FAIL  \(what)")
     if !ok { failures += 1 }
 }
 
-func ids(_ line: Substring) -> [int] {
+func ids(line: Substring) -> [int] {
     return line.split(separator: " ").compactMap { int(String($0)) }
 }
 
 let dir = "cmd/test-tokenizer/testdata/"
 
-func inputsOf(_ name: string) throws -> ([string], [Substring]) {
+func inputsOf(name: string) throws -> ([string], [Substring]) {
     let raw = try fs.ReadText(fs.Path(dir + "ggml-vocab-\(name).gguf.inp"))
     var inputs: [string] = []
     var group: [string] = []

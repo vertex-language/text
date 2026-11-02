@@ -14,7 +14,7 @@ import (
 
 let dir = "cmd/test-bidi/"
 
-func hex(_ s: Substring) -> uint32 {
+func hex(s: Substring) -> uint32 {
     var v: uint32 = 0
     for c in s.utf8 {
         var d: uint32 = 0
@@ -24,7 +24,7 @@ func hex(_ s: Substring) -> uint32 {
     return v
 }
 
-func removedByX9(_ cp: uint32) -> bool {
+func removedByX9(cp: uint32) -> bool {
     switch unicode.BidiClassOf(cp) {
     case .RLE, .LRE, .RLO, .LRO, .PDF, .BN: return true
     default: return false

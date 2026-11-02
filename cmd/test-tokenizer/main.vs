@@ -13,12 +13,12 @@ import (
 
 var failures = 0
 
-func check(_ ok: bool, _ what: string) {
+func check(ok: bool, what: string) {
     print(ok ? "ok    \(what)" : "FAIL  \(what)")
     if !ok { failures += 1 }
 }
 
-func vocabulary(_ f: gguf.File) -> tokenizer.Vocabulary {
+func vocabulary(f: gguf.File) -> tokenizer.Vocabulary {
     let kinds = f.Integers("tokenizer.ggml.token_type")!.map { tokenizer.Kind(rawValue: $0) ?? .Normal }
     return tokenizer.Vocabulary(
         tokens: f.Texts("tokenizer.ggml.tokens")!,
@@ -32,7 +32,7 @@ func vocabulary(_ f: gguf.File) -> tokenizer.Vocabulary {
         addSpacePrefix: f.Flag("tokenizer.ggml.add_space_prefix") ?? true)
 }
 
-func hex(_ s: string) -> string {
+func hex(s: string) -> string {
     let digits = Array("0123456789abcdef".utf8)
     var out: [uint8] = []
     for b in s.utf8 {
@@ -42,7 +42,7 @@ func hex(_ s: string) -> string {
     return string(decoding: out, as: UTF8.self)
 }
 
-func ids(_ line: Substring) -> [int] {
+func ids(line: Substring) -> [int] {
     return line.split(separator: " ").compactMap { int(String($0)) }
 }
 
@@ -99,7 +99,7 @@ check(t.Encode("Hello") == sp.Encode("Hello") && t.Decode(sp.Encode("Hello"), re
 // A SentencePiece ModelProto built by hand: three pieces, a trainer spec
 // with its ids, a normalizer spec without the dummy prefix, and a field
 // this reader does not know, skipped.
-func varint(_ v: uint64) -> [uint8] {
+func varint(v: uint64) -> [uint8] {
     var out: [uint8] = []
     var x = v
     while x >= 0x80 {
@@ -109,13 +109,13 @@ func varint(_ v: uint64) -> [uint8] {
     out.append(uint8(x))
     return out
 }
-func field(_ n: int, _ bytes: [uint8]) -> [uint8] {
+func field(n: int, bytes: [uint8]) -> [uint8] {
     return varint(uint64(n << 3 | 2)) + varint(uint64(bytes.count)) + bytes
 }
-func number(_ n: int, _ v: uint64) -> [uint8] {
+func number(n: int, v: uint64) -> [uint8] {
     return varint(uint64(n << 3)) + varint(v)
 }
-func piece(_ text: string, _ score: float32, _ kind: int) -> [uint8] {
+func piece(text: string, score: float32, kind: int) -> [uint8] {
     let bits = score.bitPattern
     let f: [uint8] = [0x15] // field 2, fixed32
     return field(1, [uint8](text.utf8)) + f + [uint8(truncatingIfNeeded: bits), uint8(truncatingIfNeeded: bits >> 8),

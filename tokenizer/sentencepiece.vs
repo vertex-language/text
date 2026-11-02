@@ -23,7 +23,7 @@ struct Bigram {
 
     /// Before is the queue's order: the higher score first, and of two
     /// equal scores the one further left.
-    func Before(_ o: Bigram) -> bool {
+    func Before(o: Bigram) -> bool {
         return Score > o.Score || (Score == o.Score && Left < o.Left)
     }
 }
@@ -34,7 +34,7 @@ struct Queue {
 
     var IsEmpty: bool { return items.isEmpty }
 
-    mutating func Push(_ b: Bigram) {
+    mutating func Push(b: Bigram) {
         items.append(b)
         var i = items.count - 1
         while i > 0 {
@@ -72,7 +72,7 @@ public final class SentencePiece {
     let _ids: [string: int]
     let _bytes: [int]
 
-    public init(_ vocab: Vocabulary) {
+    public init(vocab: Vocabulary) {
         self.Vocab = vocab
         var ids: [string: int] = [:]
         for i in 0..<vocab.Tokens.count {
@@ -94,14 +94,14 @@ public final class SentencePiece {
     public var Count: int { return Vocab.Tokens.count }
 
     /// Token is the id whose text is exactly text, or nil.
-    public func Token(_ text: string) -> int? {
+    public func Token(text: string) -> int? {
         return _ids[text]
     }
 
     /// Encode is text's tokens. With addSpecial, the vocabulary's Bos and
     /// Eos go around them as it says to add them. Special tokens written in
     /// the text are text, not tokens.
-    public func Encode(_ text: string, addSpecial: bool = true) -> [int] {
+    public func Encode(text: string, addSpecial: bool = true) -> [int] {
         var out: [int] = []
         if addSpecial && Vocab.AddBos, let bos = Vocab.Bos {
             out.append(bos)
@@ -128,11 +128,11 @@ public final class SentencePiece {
         return out
     }
 
-    func text(_ bytes: [uint8], _ start: int, _ count: int) -> string {
+    func text(bytes: [uint8], start: int, count: int) -> string {
         return string(decoding: bytes[start..<(start + count)], as: UTF8.self)
     }
 
-    func encodePieces(_ bytes: [uint8], _ out: inout [int]) {
+    func encodePieces(bytes: [uint8], out: inout [int]) {
         if bytes.isEmpty {
             return
         }
@@ -149,7 +149,7 @@ public final class SentencePiece {
         }
         var queue = Queue()
         var merges: [string: (int, int)] = [:]
-        func tryBigram(_ left: int, _ right: int) {
+        func tryBigram(left: int, right: int) {
             if left == -1 || right == -1 {
                 return
             }
@@ -189,7 +189,7 @@ public final class SentencePiece {
         }
     }
 
-    func resegment(_ bytes: [uint8], _ symbols: [Symbol], _ merges: [string: (int, int)], _ s: Symbol, _ out: inout [int]) {
+    func resegment(bytes: [uint8], symbols: [Symbol], merges: [string: (int, int)], s: Symbol, out: inout [int]) {
         let t = text(bytes, s.Start, s.Count)
         if let id = _ids[t] {
             out.append(id)
@@ -209,7 +209,7 @@ public final class SentencePiece {
     /// Piece is a token's bytes as text: '▁' a space, a byte token its
     /// byte. A control or unknown token is nothing unless special, and then
     /// its text. Bytes, since one character may take several byte tokens.
-    public func Piece(_ id: int, special: bool = false) -> [uint8] {
+    public func Piece(id: int, special: bool = false) -> [uint8] {
         if id < 0 || id >= Count {
             return []
         }
@@ -250,7 +250,7 @@ public final class SentencePiece {
     /// it: the dummy prefix's space is taken off the first piece, and with
     /// removeSpecial a leading Bos (and trailing Eos) that encoding added
     /// are dropped.
-    public func Decode(_ ids: [int], removeSpecial: bool = false, special: bool = false) -> string {
+    public func Decode(ids: [int], removeSpecial: bool = false, special: bool = false) -> string {
         var ids = ids
         var strip = Vocab.AddSpacePrefix
         if removeSpecial && Vocab.AddBos && !ids.isEmpty && ids[0] == Vocab.Bos {
@@ -275,7 +275,7 @@ public final class SentencePiece {
     }
 }
 
-func hexValue(_ c: uint8) -> int {
+func hexValue(c: uint8) -> int {
     if c >= 0x30 && c <= 0x39 { return int(c) - 0x30 }
     if c >= 0x41 && c <= 0x46 { return int(c) - 0x41 + 10 }
     if c >= 0x61 && c <= 0x66 { return int(c) - 0x61 + 10 }

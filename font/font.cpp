@@ -18,6 +18,10 @@ export module text.font;
 // is looked up, and is -1 where no installed family has it.
 export int32_t fontFace(const char* family, double size, int32_t weight, int32_t italic) noexcept;
 
+// A face like another with OpenType features and variation axes set, each
+// "tag=value,tag=value". What the font doesn't have is passed over.
+export int32_t fontStyled(int32_t face, const char* features, const char* variations) noexcept;
+
 // Registers a font file with the system for this process, so that its
 // family can be asked for by name. Copies that family name, as the
 // file spells it, NUL-terminated, into family (up to cap bytes), and

@@ -9,6 +9,10 @@ public struct Spec: Equatable {
     public var Size: float32
     public var Weight: int32
     public var Italic: bool
+    /// OpenType features and variation axes, each "tag=value,tag=value":
+    /// "tnum=1,kern=0", "wght=900".
+    public var Features: string = ""
+    public var Variations: string = ""
 
     public init(families: [string], size: float32, weight: int32 = 400, italic: bool = false) {
         Families = families
@@ -190,7 +194,7 @@ public func Load(spec: Spec) -> Face {
     let key = spec.Families.isEmpty ? "" : spec.Families[0]
     let known = faces[key] ?? []
     for f in known {
-        if f.Spec.Size == spec.Size && f.Spec.Weight == spec.Weight && f.Spec.Italic == spec.Italic && sameList(f.Spec.Families, spec.Families) {
+        if f.Spec.Features == spec.Features && f.Spec.Variations == spec.Variations && f.Spec.Size == spec.Size && f.Spec.Weight == spec.Weight && f.Spec.Italic == spec.Italic && sameList(f.Spec.Families, spec.Families) {
             return f
         }
     }
@@ -211,6 +215,10 @@ public func Load(spec: Spec) -> Face {
     if id < 0 {
         family = "sans-serif"
         id = fontFace(family, double(size), spec.Weight, spec.Italic ? 1 : 0)
+    }
+    if id >= 0 && (!spec.Features.isEmpty || !spec.Variations.isEmpty) {
+        let styled = fontStyled(id, spec.Features, spec.Variations)
+        if styled >= 0 { id = styled }
     }
     var used = spec
     used.Size = size

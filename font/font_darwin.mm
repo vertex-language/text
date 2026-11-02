@@ -114,6 +114,47 @@ int32_t fontFace(const char* family, double size, int32_t weight, int32_t italic
     }
 }
 
+// The faces shaped with no kerning: CoreText takes that per string.
+static NSMutableSet<NSNumber*>* unkerned = nil;
+
+int32_t fontStyled(int32_t face, const char* features, const char* variations) noexcept {
+    if (face <= 0 || (int)faces.count < face) return -1;
+    @autoreleasepool {
+        CTFontRef base = (__bridge CTFontRef)faces[(NSUInteger)(face - 1)];
+        NSMutableDictionary* attributes = [NSMutableDictionary dictionary];
+        NSMutableArray* settings = [NSMutableArray array];
+        for (NSString* item in [[NSString stringWithUTF8String:features ? features : ""] componentsSeparatedByString:@","]) {
+            NSArray<NSString*>* p = [item componentsSeparatedByString:@"="];
+            if (p.count != 2 || p[0].length != 4) continue;
+            [settings addObject:@{(id)kCTFontOpenTypeFeatureTag: p[0], (id)kCTFontOpenTypeFeatureValue: @(p[1].intValue)}];
+        }
+        if (settings.count > 0) attributes[(id)kCTFontFeatureSettingsAttribute] = settings;
+        NSMutableDictionary* axes = [NSMutableDictionary dictionary];
+        for (NSString* item in [[NSString stringWithUTF8String:variations ? variations : ""] componentsSeparatedByString:@","]) {
+            NSArray<NSString*>* p = [item componentsSeparatedByString:@"="];
+            if (p.count != 2 || p[0].length != 4) continue;
+            const char* t = p[0].UTF8String;
+            uint32_t tag = ((uint32_t)(uint8_t)t[0] << 24) | ((uint32_t)(uint8_t)t[1] << 16) | ((uint32_t)(uint8_t)t[2] << 8) | (uint32_t)(uint8_t)t[3];
+            axes[@(tag)] = @(p[1].doubleValue);
+        }
+        if (axes.count > 0) attributes[(id)kCTFontVariationAttribute] = axes;
+        CTFontDescriptorRef d = CTFontDescriptorCreateWithAttributes((__bridge CFDictionaryRef)attributes);
+        CTFontRef made = CTFontCreateCopyWithAttributes(base, 0, NULL, d);
+        CFRelease(d);
+        if (made == NULL) return -1;
+        // A face of its own, even where it looks like the one it came from:
+        // kerning off is this face's alone.
+        [faces addObject:(__bridge id)made];
+        CFRelease(made);
+        int32_t id = (int32_t)faces.count;
+        if ([[NSString stringWithUTF8String:features ? features : ""] containsString:@"kern=0"]) {
+            if (unkerned == nil) unkerned = [NSMutableSet set];
+            [unkerned addObject:@(id)];
+        }
+        return id;
+    }
+}
+
 int32_t fontRegister(const char* path, char* family, int32_t cap) noexcept {
     if (path == NULL)
         return 0;
@@ -214,7 +255,9 @@ int32_t fontShape(int32_t face, const char* text, int32_t len,
         NSString* str = [[NSString alloc] initWithBytes:text length:(NSUInteger)len encoding:NSUTF8StringEncoding];
         if (str == nil || str.length == 0)
             return 0;
-        NSDictionary* attrs = @{ (__bridge id)kCTFontAttributeName: (__bridge id)font };
+        NSDictionary* attrs = [unkerned containsObject:@(face)]
+            ? @{ (__bridge id)kCTFontAttributeName: (__bridge id)font, (__bridge id)kCTKernAttributeName: @0 }
+            : @{ (__bridge id)kCTFontAttributeName: (__bridge id)font };
         NSAttributedString* attributed = [[NSAttributedString alloc] initWithString:str attributes:attrs];
         CTLineRef line = CTLineCreateWithAttributedString((__bridge CFAttributedStringRef)attributed);
         if (line == NULL)

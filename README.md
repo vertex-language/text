@@ -11,6 +11,7 @@ Text, as algorithms rather than formats: fonts and shaping, and tokenizers for l
 
 - **`text/font`**: Faces by family, size, weight and slant; text shaped into glyphs with a per-word cache; glyph masks at any scale, drawn onto an `image/draw` canvas. The OS shapes and rasterizes: CoreText on macOS (`font.cpp`, module `text.font`, and `font_darwin.mm`).
 - **`text/bidi`**: The Unicode Bidirectional Algorithm (UAX #9): each character's embedding level in a paragraph, with explicit embeddings, overrides, isolates and paired brackets, then a line's visual order (L1, L2) and mirrored brackets.
+- **`text/regexp`**: Regular expressions as ECMAScript writes them, matched by backtracking: groups, lookaround, backreferences, lazy quantifiers, `\p{…}`, and the `i`, `m`, `s` flags. What HTML's `pattern` attribute uses.
 - **`text/tokenizer`**: Text to a model's token ids and back, driven by the model's vocabulary data. `SentencePiece` works as llama.cpp's `llm_tokenizer_spm` does: score-ordered merges of adjacent pieces, `▁` for spaces, a dummy prefix, and `<0xXX>` byte fallback. `Encode`, `Decode` (with llama.cpp's leading-space rule) and `Piece` (a token's bytes, for streaming). A `Vocabulary` holds tokens, scores and kinds, the special ids, and whether BOS, EOS and the space prefix are added. It is built from a GGUF file's `tokenizer.ggml.*` keys (`model/llama.Vocabulary`).
 
 ---
@@ -21,6 +22,7 @@ Text, as algorithms rather than formats: fonts and shaping, and tokenizers for l
 vsc run check-font
 vsc run check-bidi
 vsc run test-bidi
+vsc run check-regexp
 vsc run test-tokenizer
 vsc run test-bpe
 ```

@@ -149,6 +149,8 @@ int32_t fontGlyphOutline(int32_t face, uint32_t glyph, uint8_t* ops, float* poin
 
 // The faces shaped with no kerning: CoreText takes that per string.
 static NSMutableSet<NSNumber*>* unkerned = nil;
+// Faces whose text takes vertical forms (vert=1).
+static NSMutableSet<NSNumber*>* verticalForms = nil;
 
 int32_t fontStyled(int32_t face, const char* features, const char* variations) noexcept {
     if (face <= 0 || (int)faces.count < face) return -1;
@@ -183,6 +185,11 @@ int32_t fontStyled(int32_t face, const char* features, const char* variations) n
         if ([[NSString stringWithUTF8String:features ? features : ""] containsString:@"kern=0"]) {
             if (unkerned == nil) unkerned = [NSMutableSet set];
             [unkerned addObject:@(id)];
+        }
+        // vert: CoreText takes vertical forms as the text's, not the font's.
+        if ([[NSString stringWithUTF8String:features ? features : ""] containsString:@"vert=1"]) {
+            if (verticalForms == nil) verticalForms = [NSMutableSet set];
+            [verticalForms addObject:@(id)];
         }
         return id;
     }
@@ -293,9 +300,11 @@ int32_t fontShape(int32_t face, const char* text, int32_t len,
         NSString* str = [[NSString alloc] initWithBytes:text length:(NSUInteger)len encoding:NSUTF8StringEncoding];
         if (str == nil || str.length == 0)
             return 0;
-        NSDictionary* attrs = [unkerned containsObject:@(face)]
-            ? @{ (__bridge id)kCTFontAttributeName: (__bridge id)font, (__bridge id)kCTKernAttributeName: @0 }
-            : @{ (__bridge id)kCTFontAttributeName: (__bridge id)font };
+        NSMutableDictionary* attrs = [NSMutableDictionary dictionaryWithObject:(__bridge id)font forKey:(__bridge id)kCTFontAttributeName];
+        if ([unkerned containsObject:@(face)])
+            attrs[(__bridge id)kCTKernAttributeName] = @0;
+        if ([verticalForms containsObject:@(face)])
+            attrs[(__bridge id)kCTVerticalFormsAttributeName] = @YES;
         NSAttributedString* attributed = [[NSAttributedString alloc] initWithString:str attributes:attrs];
         CTLineRef line = CTLineCreateWithAttributedString((__bridge CFAttributedStringRef)attributed);
         if (line == NULL)

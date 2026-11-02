@@ -42,6 +42,10 @@ export int32_t fontRegisterData(const uint8_t* data, int32_t len, char* family, 
 export void fontMetrics(int32_t face, double* ascent, double* descent, double* leading,
                         double* x_height, double* space_advance) noexcept;
 
+// The face's cap height at its size, in CSS pixels: how far a capital's
+// flat top is above the baseline.
+export double fontCapHeight(int32_t face) noexcept;
+
 // Shapes UTF-8 text with a face into glyphs. Each glyph is on some face --
 // the one asked for, or one the system fell back to for a character it
 // lacks, which gets an id of its own -- and has an advance in CSS pixels.

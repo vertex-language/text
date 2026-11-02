@@ -253,6 +253,11 @@ int32_t fontRegisterData(const uint8_t* data, int32_t len, char* family, int32_t
     }
 }
 
+double fontCapHeight(int32_t face) noexcept {
+    CTFontRef font = fontOf(face);
+    return font == NULL ? 0 : CTFontGetCapHeight(font);
+}
+
 void fontMetrics(int32_t face, double* ascent, double* descent, double* leading,
                    double* x_height, double* space_advance) noexcept {
     CTFontRef font = fontOf(face);

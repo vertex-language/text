@@ -67,6 +67,8 @@ public final class Face {
     /// normal` adds to the ascent and descent.
     public let Leading: float32
     public let XHeight: float32
+    /// How far a capital's flat top is above the baseline.
+    public let CapHeight: float32
     public let SpaceWidth: float32
 
     var runs: [string: Run] = [:]
@@ -86,6 +88,7 @@ public final class Face {
         Descent = float32(descent)
         Leading = float32(leading)
         XHeight = float32(xHeight)
+        CapHeight = float32(fontCapHeight(id))
         SpaceWidth = float32(space)
     }
 

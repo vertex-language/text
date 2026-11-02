@@ -25,6 +25,7 @@ func main() -> int32 {
     check(face.Descent > 2 && face.Descent < 8, "descent is plausible (got \(face.Descent))")
     check(face.SpaceWidth > 2 && face.SpaceWidth < 8, "space width is plausible (got \(face.SpaceWidth))")
     check(face.LineHeight >= face.Ascent + face.Descent, "line height covers ascent and descent")
+    check(face.CapHeight > face.XHeight && face.CapHeight < face.Ascent, "cap height is between the x height and the ascent (got \(face.CapHeight), x \(face.XHeight))")
 
     let same = font.Load(font.Spec(family: "system-ui", size: 16))
     check(same.Id == face.Id, "the same spec answers the same face")

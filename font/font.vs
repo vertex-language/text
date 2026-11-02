@@ -1,6 +1,9 @@
 package font
 
-import "image/draw"
+import (
+    "image/draw"
+    "math"
+)
 
 /// What a font is asked for, in CSS terms: a list of families to try in
 /// order, a size in CSS pixels, a weight from 100 to 900 and a slant.
@@ -261,6 +264,67 @@ public struct Glyph {
 }
 
 var glyphs: [uint64: Glyph] = [:]
+
+/// A glyph's outline, its pen at (x, baseline), scale pixels to the CSS
+/// pixel, added to a path.
+public func AppendOutline(path: inout draw.Path, face: int32, glyph: uint32, x: float32, baseline: float32, scale: float32, turn: float32 = 0) {
+    var pointCount: int32 = 0
+    let n = fontGlyphOutline(face, glyph, nil, nil, 0, 0, &pointCount)
+    if n <= 0 { return }
+    var ops = [uint8](repeating: 0, count: int(n))
+    var points = [float32](repeating: 0, count: int(pointCount))
+    _ = ops.withUnsafeMutableBufferPointer { o in
+        points.withUnsafeMutableBufferPointer { p in
+            fontGlyphOutline(face, glyph, o.baseAddress, p.baseAddress, n, pointCount, &pointCount)
+        }
+    }
+    let c = math.Cos(turn)
+    let s = math.Sin(turn)
+    func at(i: int) -> (float32, float32) {
+        let px = points[i] * scale
+        let py = -points[i + 1] * scale
+        return (x + px * c - py * s, baseline + px * s + py * c)
+    }
+    var k = 0
+    for op in ops {
+        switch op {
+        case 0:
+            let a = at(k)
+            path.MoveTo(a.0, a.1)
+            k += 2
+        case 1:
+            let a = at(k)
+            path.LineTo(a.0, a.1)
+            k += 2
+        case 2:
+            let a = at(k)
+            let b = at(k + 2)
+            path.QuadTo(a.0, a.1, b.0, b.1)
+            k += 4
+        case 3:
+            let a = at(k)
+            let b = at(k + 2)
+            let d = at(k + 4)
+            path.CubicTo(a.0, a.1, b.0, b.1, d.0, d.1)
+            k += 6
+        default:
+            path.Close()
+        }
+    }
+}
+
+/// A run's glyphs as one path, its pen at (x, baseline).
+public func RunOutline(run: Run, x: float32, baseline: float32, scale: float32, letterSpacing: float32 = 0) -> draw.Path {
+    var path = draw.Path()
+    var pen = x
+    var i = 0
+    while i < run.Glyphs.count {
+        AppendOutline(&path, face: run.Faces[i], glyph: run.Glyphs[i], x: pen, baseline: baseline, scale: scale)
+        pen += (run.Advances[i] + letterSpacing) * scale
+        i += 1
+    }
+    return path
+}
 
 /// The mask for a glyph of a face at a scale, rasterized once and kept.
 /// Scales are kept to sixteenths, which is finer than any display's.

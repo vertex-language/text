@@ -22,6 +22,11 @@ export int32_t fontFace(const char* family, double size, int32_t weight, int32_t
 // "tag=value,tag=value". What the font doesn't have is passed over.
 export int32_t fontStyled(int32_t face, const char* features, const char* variations) noexcept;
 
+// A glyph's outline at its face's size, y up: ops (0 move, 1 line, 2 quad,
+// 3 cubic, 4 close) and their points. Answers how many ops; with no room,
+// says how much it needs in opCount and pointCount.
+export int32_t fontGlyphOutline(int32_t face, uint32_t glyph, uint8_t* ops, float* points, int32_t opCap, int32_t pointCap, int32_t* pointCount) noexcept;
+
 // Registers a font file with the system for this process, so that its
 // family can be asked for by name. Copies that family name, as the
 // file spells it, NUL-terminated, into family (up to cap bytes), and

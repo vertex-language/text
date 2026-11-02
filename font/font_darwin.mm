@@ -114,6 +114,39 @@ int32_t fontFace(const char* family, double size, int32_t weight, int32_t italic
     }
 }
 
+int32_t fontGlyphOutline(int32_t face, uint32_t glyph, uint8_t* ops, float* points, int32_t opCap, int32_t pointCap, int32_t* pointCount) noexcept {
+    if (pointCount) *pointCount = 0;
+    CTFontRef font = fontOf(face);
+    if (font == NULL) return 0;
+    CGPathRef path = CTFontCreatePathForGlyph(font, (CGGlyph)glyph, NULL);
+    if (path == NULL) return 0;
+    __block int32_t nops = 0;
+    __block int32_t npts = 0;
+    CGPathApplyWithBlock(path, ^(const CGPathElement* e) {
+        int32_t kind = 4;
+        int32_t count = 0;
+        switch (e->type) {
+        case kCGPathElementMoveToPoint: kind = 0; count = 1; break;
+        case kCGPathElementAddLineToPoint: kind = 1; count = 1; break;
+        case kCGPathElementAddQuadCurveToPoint: kind = 2; count = 2; break;
+        case kCGPathElementAddCurveToPoint: kind = 3; count = 3; break;
+        case kCGPathElementCloseSubpath: kind = 4; count = 0; break;
+        }
+        if (ops != NULL && nops < opCap) ops[nops] = (uint8_t)kind;
+        nops += 1;
+        for (int32_t i = 0; i < count; i++) {
+            if (points != NULL && npts + 2 <= pointCap) {
+                points[npts] = (float)e->points[i].x;
+                points[npts + 1] = (float)e->points[i].y;
+            }
+            npts += 2;
+        }
+    });
+    CGPathRelease(path);
+    if (pointCount) *pointCount = npts;
+    return nops;
+}
+
 // The faces shaped with no kerning: CoreText takes that per string.
 static NSMutableSet<NSNumber*>* unkerned = nil;
 
